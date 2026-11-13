@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Vetbot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app shell — sidebar de navegação + área de trabalho; atendimento em 3 colunas (conversas · chat · copiloto) */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --surface-2:#e9efed; --line:#d5dfdb; --fg:#14211f; --muted:#5a6a66;
+  --primary:#0d7564; --primary-fg:#ffffff; --primary-soft:#d6eee7;
+  --accent:#c98a12; --accent-soft:#fbefd2;
+  --danger:#bf3e2c; --danger-soft:#fbe2dd; --ok:#2c8549; --ok-soft:#ddf1e3;
+  --bubble-in:#ffffff; --bubble-out:#d8efe8; --wave-off:#b9c9c4;
+  --chip-l:91%; --chip-fg-l:28%;
+  --shadow:0 1px 2px rgb(20 33 31 / .06), 0 6px 20px rgb(20 33 31 / .07);
+  --f-display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1413; --surface:#141e1c; --surface-2:#1a2725; --line:#263532; --fg:#e3ede9; --muted:#93a6a1;
+  --primary:#3dbda3; --primary-fg:#05211b; --primary-soft:#163a33;
+  --accent:#efb546; --accent-soft:#3a2e16;
+  --danger:#f07b66; --danger-soft:#3d1f1a; --ok:#5ccd82; --ok-soft:#163522;
+  --bubble-in:#1a2725; --bubble-out:#123f38; --wave-off:#3a4f4b;
+  --chip-l:21%; --chip-fg-l:80%;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 6px 20px rgb(0 0 0 / .3);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1413; --surface:#141e1c; --surface-2:#1a2725; --line:#263532; --fg:#e3ede9; --muted:#93a6a1;
+  --primary:#3dbda3; --primary-fg:#05211b; --primary-soft:#163a33;
+  --accent:#efb546; --accent-soft:#3a2e16;
+  --danger:#f07b66; --danger-soft:#3d1f1a; --ok:#5ccd82; --ok-soft:#163522;
+  --bubble-in:#1a2725; --bubble-out:#123f38; --wave-off:#3a4f4b;
+  --chip-l:21%; --chip-fg-l:80%;
+  --shadow:0 1px 2px rgb(0 0 0 / .3), 0 6px 20px rgb(0 0 0 / .3);
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:20px} h2{font-size:17px} h3{font-size:15px}
+p{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic.fill{fill:currentColor;stroke:none}
+
+/* Shell */
+.app{height:100%;display:grid;grid-template-columns:228px minmax(0,1fr)}
+.side{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px;gap:18px;min-height:0}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:var(--primary);color:var(--primary-fg);display:grid;place-items:center}
+.brand b{font-family:var(--f-display);font-size:21px;letter-spacing:-.02em}
+.brand small{display:block;color:var(--muted);font-size:11.5px;margin-top:-2px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-weight:500}
+.nav a:hover{background:var(--surface-2);color:var(--fg)}
+.nav a.on{background:var(--primary-soft);color:var(--fg)}
+.nav a.on .ic{color:var(--primary)}
+.nav .badge{margin-left:auto}
+.side-foot{margin-top:auto;padding:10px;border:1px dashed var(--line);border-radius:var(--r);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.side-foot b{color:var(--fg);font-weight:600}
+.linkbtn{background:none;border:0;padding:0;color:var(--primary);font-weight:600;text-align:left;font-size:12px}
+
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:12px;padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px));border-bottom:1px solid var(--line);background:var(--surface)}
+.top h1{margin-right:auto}
+.view{flex:1;min-height:0;overflow:auto}
+.page{padding-block:20px 40px;padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:20px;max-width:1240px}
+
+/* Agent mode switch */
+.mode{display:flex;align-items:center;gap:8px}
+.mode-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:6px 11px;border-radius:7px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.seg button.on[data-v="auto"]{color:var(--primary)}
+.seg button.on[data-v="off"]{color:var(--danger)}
+
+/* Generic */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);background:var(--surface);padding:8px 13px;border-radius:8px;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.sm{padding:5px 9px;font-size:12.5px}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.pad{padding:16px}
+.badge{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--primary);color:var(--primary-fg);font-size:11.5px;font-weight:700}
+.chip{--h:180;display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:hsl(var(--h) 45% var(--chip-l));color:hsl(var(--h) 55% var(--chip-fg-l));white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.02em}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--accent-soft);color:var(--accent)}
+.pill.bad{background:var(--danger-soft);color:var(--danger)}
+.pill.neu{background:var(--surface-2);color:var(--muted)}
+.pill.ai{background:var(--primary-soft);color:var(--primary)}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+input[type=text],input[type=number],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+
+/* Inbox */
+.inbox{height:100%;display:grid;grid-template-columns:300px minmax(0,1fr) 370px;min-height:0;position:relative}
+.convs{border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+.convs-head{padding:12px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
+.conv-list{overflow:auto;flex:1}
+.conv{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:3px solid transparent;width:100%;text-align:left;border-top:0;border-right:0}
+.conv:hover{background:var(--surface-2)}
+.conv.on{background:var(--primary-soft);border-left-color:var(--primary)}
+.conv.urgent{border-left-color:var(--danger)}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:hsl(var(--h,170) 40% var(--chip-l));color:hsl(var(--h,170) 50% var(--chip-fg-l))}
+.conv .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .pv{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:11.5px;color:var(--muted)}
+.conv .tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+
+.chat{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--bg)}
+.chat-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line)}
+.chat-head .who{min-width:0;flex:1}
+.chat-head .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-head .who span{font-size:12.5px;color:var(--muted)}
+.msgs{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.dsep{align-self:center;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px 10px;margin:8px 0}
+.bub{max-width:min(78%, 520px);padding:8px 11px 6px;border-radius:12px;background:var(--bubble-in);box-shadow:var(--shadow);align-self:flex-start;display:flex;flex-direction:column;gap:4px;white-space:pre-wrap;word-wrap:break-word}
+.bub.out{align-self:flex-end;background:var(--bubble-out)}
+.bub .bt{font-size:11px;color:var(--muted);display:flex;gap:6px;justify-content:flex-end;align-items:center;white-space:nowrap}
+.bub .by{font-size:11px;font-weight:700;color:var(--primary)}
+.bub.flash{animation:flash 1.2s ease}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:var(--shadow)}}
+.photo{width:220px;max-width:100%;aspect-ratio:4/3;border-radius:8px;background:linear-gradient(135deg,hsl(35 60% 70%),hsl(20 45% 52%));display:grid;place-items:center;color:#fff;overflow:hidden}
+.photo img{width:100%;height:100%;object-fit:cover}
+.transcript{font-size:12.5px;color:var(--muted);border-left:2px solid var(--line);padding-left:8px;white-space:normal}
+.player{display:flex;align-items:center;gap:9px;min-width:220px}
+.play{width:32px;height:32px;border-radius:50%;border:0;background:var(--primary);color:var(--primary-fg);display:grid;place-items:center;flex:none}
+.play .ic{width:14px;height:14px}
+.wave{display:flex;align-items:center;gap:2px;height:26px;flex:1}
+.wave i{display:block;width:3px;border-radius:2px;background:var(--wave-off)}
+.wave i.on{background:var(--primary)}
+.dur{font-size:11.5px;color:var(--muted)}
+
+.composer{position:relative;padding:10px 12px;background:var(--surface);border-top:1px solid var(--line);display:flex;align-items:flex-end;gap:6px}
+.composer textarea{min-height:42px;max-height:140px;resize:none;border-radius:20px;padding:10px 14px}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:0;background:none;color:var(--muted);display:grid;place-items:center;flex:none}
+.iconbtn:hover{background:var(--surface-2);color:var(--fg)}
+.iconbtn.send{background:var(--primary);color:var(--primary-fg)}
+.quickpop{position:absolute;left:12px;right:12px;bottom:calc(100% + 6px);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);max-height:260px;overflow:auto;z-index:5}
+.quickpop button{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;width:100%;text-align:left;border:0;background:none;padding:9px 12px;border-bottom:1px solid var(--line)}
+.quickpop button:hover,.quickpop button.on{background:var(--surface-2)}
+.quickpop .k{font-family:var(--f-mono);color:var(--primary);font-weight:500}
+.quickpop .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.hint{font-size:11.5px;color:var(--muted);padding:0 14px 8px;background:var(--surface)}
+
+.copilot{border-left:1px solid var(--line);background:var(--surface);overflow:auto;min-height:0;display:flex;flex-direction:column}
+.cop-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:2}
+.cop-head h2{font-size:15px;flex:1}
+.cop-body{padding:14px;display:flex;flex-direction:column;gap:12px}
+.cbox{border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:9px}
+.cbox.hl{border-color:var(--primary);background:linear-gradient(var(--primary-soft),var(--primary-soft)) top/100% 3px no-repeat, var(--surface)}
+.cbox.alert{border-color:var(--danger);background:var(--danger-soft)}
+.cbox.learn{border-color:var(--accent);background:var(--accent-soft)}
+.cbox h3{font-size:13.5px;display:flex;align-items:center;gap:6px}
+.conf{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;flex:1}
+.bar>span{display:block;height:100%;background:var(--primary);border-radius:3px}
+.alt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid var(--line);background:none;border-radius:8px;padding:7px 9px;font-size:13px}
+.alt:hover{border-color:var(--primary)}
+.alt .pct{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:13px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:500}
+.src{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.src .ic{width:15px;height:15px}
+.copbtn{display:none}
+
+/* Tables & lists */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{padding:14px 16px}
+.stat b{display:block;font-family:var(--f-display);font-size:26px;letter-spacing:-.02em}
+.stat span{color:var(--muted);font-size:12.5px}
+.faqs{display:flex;flex-direction:column}
+.faq{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:14px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+.faq:last-child{border-bottom:0}
+.faq .q{font-weight:600}
+.faq .a{color:var(--muted);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
+.freq{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.filters button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--surface)}
+.drop.over{border-color:var(--primary);background:var(--primary-soft)}
+.drop .ico{width:46px;height:46px;border-radius:12px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;flex:none}
+.steps{display:flex;flex-direction:column;gap:8px}
+.step{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted)}
+.step.done{color:var(--fg)}
+.step .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex:none}
+.step.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
+.step.cur .dot{border-color:var(--primary);border-top-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.cluster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;padding:16px;border-bottom:1px solid var(--line)}
+.cluster:last-child{border-bottom:0}
+.examples{margin:6px 0 0;padding-left:16px;color:var(--muted);font-size:13px}
+
+/* Flows */
+.flows{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+.flow-list{display:flex;flex-direction:column;gap:8px}
+.fl{display:flex;flex-direction:column;gap:6px;text-align:left;padding:12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);width:100%}
+.fl.on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.fl b{font-size:14px}
+.canvas{padding:18px;overflow-x:auto;background-color:var(--surface);background-image:radial-gradient(var(--line) 1px, transparent 1px);background-size:18px 18px}
+.seq{display:flex;flex-direction:column;align-items:center;gap:0;min-width:230px}
+.node{position:relative;width:250px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;box-shadow:var(--shadow)}
+.node:hover{border-color:var(--primary)}
+.node .nt{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--nc,var(--muted))}
+.node .nt .ic{width:14px;height:14px}
+.node .nl{font-weight:600;font-size:13.5px}
+.node .nd{font-size:12px;color:var(--muted)}
+.node.t-trigger{--nc:var(--accent);border-style:dashed}
+.node.t-cond{--nc:var(--primary);border-color:var(--primary)}
+.node.t-human{--nc:var(--danger)}
+.node.t-audio,.node.t-faq,.node.t-quick,.node.t-msg{--nc:var(--ok)}
+.conn{width:2px;height:20px;background:var(--line)}
+.branches{display:flex;gap:22px;align-items:flex-start;position:relative;padding-top:14px;border-top:2px solid var(--line)}
+.branch{display:flex;flex-direction:column;align-items:center}
+.blabel{font-size:11.5px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);margin-bottom:0}
+.addn{width:28px;height:28px;border-radius:50%;border:1px dashed var(--muted);background:var(--surface);color:var(--muted);display:grid;place-items:center}
+.addn:hover{border-color:var(--primary);color:var(--primary)}
+.addn .ic{width:14px;height:14px}
+.sug{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r);background:var(--primary-soft);border:1px solid var(--primary)}
+.sug .ai{width:30px;height:30px;border-radius:8px;background:var(--primary);color:var(--primary-fg);display:grid;place-items:center;flex:none}
+
+/* Media */
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.acard{padding:14px;display:flex;flex-direction:column;gap:10px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+
+/* Integrations */
+.ints{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.int{padding:16px;display:flex;flex-direction:column;gap:12px}
+.int-ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);flex:none}
+.perm{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+.perm span{flex:1}
+.sw{appearance:none;width:34px;height:20px;border-radius:10px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:transform .15s;box-shadow:0 1px 2px rgb(0 0 0 / .2)}
+.sw:checked{background:var(--primary)}
+.sw:checked::after{transform:translateX(14px)}
+
+/* Modal & toast */
+.modal{position:fixed;inset:0;background:rgb(10 20 18 / .45);display:grid;place-items:center;z-index:50;padding:16px}
+.mbox{background:var(--surface);border-radius:14px;width:min(560px,100%);max-height:calc(100% - 32px);overflow:auto;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.mhead{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.mhead h2{flex:1}
+.mbody{padding:16px;display:flex;flex-direction:column;gap:12px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.types button{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);text-align:left;font-weight:600;font-size:13px}
+.types button:hover{border-color:var(--primary)}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60;align-items:center;pointer-events:none;width:min(92vw,460px)}
+.t{background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;box-shadow:var(--shadow);animation:tin .2s ease}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+
+/* Responsive */
+@media (max-width:1199px){
+  .inbox{grid-template-columns:280px minmax(0,1fr)}
+  .copilot{position:absolute;right:0;top:0;bottom:0;width:min(380px,100%);box-shadow:var(--shadow);z-index:6;display:none}
+  .inbox.show-cop .copilot{display:flex}
+  .copbtn{display:inline-flex}
+}
+@media (max-width:980px){
+  .flows{grid-template-columns:1fr}
+  .cluster{grid-template-columns:1fr}
+}
+@media (max-width:819px){
+  .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+  .side{position:fixed;left:0;right:0;bottom:0;z-index:20;flex-direction:row;padding:4px 6px calc(4px + env(safe-area-inset-bottom, 0px));border-right:0;border-top:1px solid var(--line);gap:0}
+  .brand,.side-foot{display:none}
+  .nav{flex-direction:row;width:100%;overflow-x:auto;gap:0}
+  .nav a{flex:1 0 auto;flex-direction:column;gap:2px;font-size:10.5px;padding:6px 8px;position:relative}
+  .nav .badge{position:absolute;top:2px;right:6px;min-width:16px;height:16px;font-size:10px;margin:0}
+  .main{padding-bottom:calc(58px + env(safe-area-inset-bottom, 0px))}
+  .top{padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+  .mode-label{display:none}
+  .page{padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+  .inbox{grid-template-columns:1fr}
+  .inbox>.convs,.inbox>.chat,.inbox>.copilot{display:none}
+  .inbox.pane-list>.convs,.inbox.pane-chat>.chat{display:flex}
+  .inbox.pane-cop>.copilot{display:flex;position:static;width:auto;box-shadow:none;border-left:0}
+  .faq{grid-template-columns:1fr auto}
+  .faq .freq{display:none}
+  .hint{display:none}
+}
+@media (min-width:820px){ .backbtn{display:none} }
+@media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+
+<div class="app" id="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" width="22" height="22" class="ic fill"><ellipse cx="6.2" cy="10" rx="2" ry="2.6"/><ellipse cx="10" cy="6.4" rx="2" ry="2.7"/><ellipse cx="14.4" cy="6.4" rx="2" ry="2.7"/><ellipse cx="18.1" cy="10" rx="2" ry="2.6"/><path d="M12.2 11.4c-2.8 0-5.6 3.6-5.6 6 0 1.8 1.4 2.6 3 2.6 1.1 0 1.7-.5 2.6-.5s1.5.5 2.6.5c1.6 0 3-.8 3-2.6 0-2.4-2.8-6-5.6-6z"/></svg></div>
+      <div><b>Vetbot</b><small>Atendimento com IA</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <b>Clínica Patas &amp; Cia</b>
+      <span>Demonstração com dados de exemplo. Nenhuma mensagem real é enviada.</span>
+      <button class="linkbtn" data-a="reset">Restaurar dados de exemplo</button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <h1 id="title">Atendimento</h1>
+      <div id="topx" class="row"></div>
+      <div class="mode">
+        <span class="mode-label">Agente Vetbot</span>
+        <div class="seg" id="modeSeg" role="radiogroup" aria-label="Modo do agente">
+          <button data-a="mode" data-v="copiloto" role="radio">Copiloto</button>
+          <button data-a="mode" data-v="auto" role="radio">Automático</button>
+          <button data-a="mode" data-v="off" role="radio">Desligado</button>
+        </div>
+      </div>
+    </header>
+    <div class="view" id="view"></div>
+  </div>
+</div>
+<input type="file" id="f-img" accept="image/*" hidden>
+<input type="file" id="f-aud" accept="audio/*" hidden>
+<div id="modal" class="modal" hidden></div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+/* ============ Utilidades ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=p=>(p||'n')+Math.random().toString(36).slice(2,8);
+const nowHM=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const fmtDur=s=>{s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const usd=n=>'US$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const P={
+ chat:'M4 5h16v11H9l-5 4z', book:'M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2zM22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z',
+ flow:'M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9',
+ mic:'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3', zap:'M13 2 4 14h7l-1 8 9-12h-7z',
+ plug:'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4', calc:'M5 3h14v18H5zM8 7h8M8 12h2M14 12h2M8 16h2M14 16h2',
+ send:'M4 12 20 4l-6 16-3-7z', play:'M7 4v16l13-8z', pause:'M7 4h4v16H7zM13 4h4v16h-4z', upload:'M12 16V4M7 9l5-5 5 5M4 20h16',
+ spark:'M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z', check:'M5 12l5 5 9-10', x:'M6 6l12 12M18 6 6 18', plus:'M12 5v14M5 12h14', back:'M15 5l-7 7 7 7',
+ clip:'M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7', image:'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01',
+ alert:'M12 3 2 20h20zM12 10v4M12 17h.01', db:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+ mail:'M3 5h18v14H3zM3 6l9 7 9-7', bank:'M3 10h18M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18M12 3l9 5H3z', user:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+ edit:'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', trash:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13', bot:'M5 8h14v11H5zM12 4v4M9 13h.01M15 13h.01M9 16h6',
+ wait:'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', phone:'M5 4h4l2 5-3 2a11 11 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 6a2 2 0 0 1 2-2z'
+};
+const ic=(n,cls='')=>`<svg viewBox="0 0 24 24" class="ic ${n==='play'||n==='pause'?'fill':''} ${cls}" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+function toast(m){const t=document.createElement('div');t.className='t';t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),3200)}
+function wave(seed,n=34,dur){let x=0;for(const c of String(seed))x=(x*31+c.charCodeAt(0))%9973;let h='';for(let i=0;i<n;i++){x=(x*7919+17)%9973;const v=6+((x%100)/100)*18*(0.55+0.45*Math.sin(i/n*Math.PI));h+=`<i style="height:${v.toFixed(0)}px"></i>`}return `<div class="wave">${h}</div>`}
+
+/* ============ Similaridade (no app final: embeddings + pgvector) ============ */
+const n1=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const STOP=new Set('a o e de da do das dos em no na nos nas um uma uns umas para pra pro por com sem que se me te lhe ele ela eles elas eu voce vc vcs voces meu minha meus minhas seu sua seus suas ao aos as os ja tem ter ta esta estou sou foi ser isso esse essa este aqui la oi ola bom dia boa tarde noite obrigado obrigada ok sim nao mais muito qual quais quando como onde quanto quantos quantas favor gostaria queria quero saber pode poderia consegue tudo hoje agora entao ai so tambem mas ou porque pq'.split(' '));
+const SYN={gata:'gato',gatin:'gato',cao:'cacho',caes:'cacho',dog:'cacho',cachor:'cacho',vcs:'',valor:'preco',custa:'preco',fica:'preco'};
+function toks(s){return n1(s).replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(t=>t&&!STOP.has(t)).map(t=>t.length>5?t.slice(0,5):t.replace(/s$/,'')).map(t=>SYN[t]??t).filter(Boolean)}
+function tri(s){const g=new Set();const x=' '+toks(s).join(' ')+' ';for(let i=0;i<x.length-2;i++)g.add(x.slice(i,i+3));return g}
+function sim(a,b){const A=new Set(toks(a)),B=new Set(toks(b));if(!A.size||!B.size)return 0;let i=0;A.forEach(t=>B.has(t)&&i++);const dice=2*i/(A.size+B.size);const TA=tri(a),TB=tri(b);let j=0;TA.forEach(t=>TB.has(t)&&j++);const cos=j/Math.sqrt(TA.size*TB.size||1);return .65*dice+.35*cos}
+const faqScore=(text,f)=>Math.max(...[f.q,...(f.vars||[])].map(t=>sim(text,t)));
+const conf=s=>Math.min(.98,s*1.5);
+function guessCat(text){const T=toks(text);let best='info',bs=0;for(const c of CATS){let s=0;for(const t of T)for(const k of c.kw)if(t===k||t.startsWith(k))s++;if(s>bs){bs=s;best=c.id}}return best}
+const fill=(t,v)=>String(t).replace(/\{(\w+)\}/g,(m,k)=>v&&v[k]!=null?v[k]:m);
+function unfill(t,v){let s=t;Object.entries(v||{}).sort((a,b)=>String(b[1]).length-String(a[1]).length).forEach(([k,val])=>{if(String(val).length>2)s=s.split(val).join('{'+k+'}')});return s}
+
+/* ============ Dados de exemplo ============ */
+const CATS=[
+ {id:'agend',name:'Agendamento',h:212,kw:['horar','consu','marca','agend','encai','vaga','exoti','coelh','hamst','silve']},
+ {id:'vacina',name:'Vacinação',h:150,kw:['vacin','v10','v8','raiva','antir','vermi','refor']},
+ {id:'fin',name:'Financeiro',h:42,kw:['bolet','pix','pagar','pagam','parce','preco','cobra','fatur','plano','reemb','venc']},
+ {id:'pront',name:'Prontuário e exames',h:272,kw:['exame','resul','hemog','laudo','pront','raio','ultra','jejum','sangu']},
+ {id:'urg',name:'Emergência',h:2,kw:['emerg','urgen','vomit','convu','atrop','choco','venen','intox','sangr']},
+ {id:'pos',name:'Cirurgia e pós-operatório',h:322,kw:['ponto','colar','cirur','castr','castr','curat','opera','sutur']},
+ {id:'banho',name:'Banho e tosa',h:96,kw:['banho','tosa','hidra','unha']},
+ {id:'info',name:'Horários e endereço',h:186,kw:['funci','abrem','abert','fecha','domin','feria','ender','hora']},
+];
+const cat=id=>CATS.find(c=>c.id===id)||CATS[7];
+const chip=id=>{const c=cat(id);return `<span class="chip" style="--h:${c.h}">${esc(c.name)}</span>`};
+
+function seed(){return {
+ mode:'copiloto', sel:'c1', pane:'list', showCop:false, alt:{}, draft:{}, suggEdit:{}, learn:null, confirm2via:null, poolIdx:0,
+ kbCat:'all', kbQ:'', an:null, flowSel:'f1',
+ faqs:[
+  {id:'q1',cat:'vacina',q:'Quando o filhote pode tomar a primeira vacina (V10)?',vars:['quantos dias o filhote pode tomar a primeira vacina','qual idade para a vacina v10','filhote começa a vacinar quando'],a:'Olá, {tutor}! A primeira dose da V10 pode ser aplicada a partir de 45 dias de vida. São 3 doses com intervalo de 21 a 30 dias e depois reforço anual. Quer que eu reserve um horário para o {pet}? Hoje temos {horario1} ou {horario2}.',n:128,audio:'a1',auto:true},
+  {id:'q2',cat:'vacina',q:'Quanto custa a vacina antirrábica?',vars:['valor da vacina da raiva','preço antirrabica'],a:'A antirrábica custa R$ 90,00 e é aplicada a partir de 4 meses, com reforço anual. Aplicamos de segunda a sábado, sem agendamento, das 8h às 18h.',n:84,auto:true},
+  {id:'q3',cat:'agend',q:'Tem horário para consulta hoje?',vars:['consegue um encaixe hoje','tem vaga para consulta','quero marcar uma consulta'],a:'Temos horários hoje às {horario1} e às {horario2} com a Dra. Paula. Posso reservar um deles para o {pet}?',n:211,auto:false},
+  {id:'q4',cat:'fin',q:'Pode mandar a segunda via do boleto?',vars:['o boleto venceu manda outro','segunda via do boleto','link do pix para pagar'],a:'Claro, {tutor}! Segue a 2ª via referente a {descricao}, no valor de {valor}, com vencimento em {vencimento}: {link}\nA mesma página aceita Pix.',n:97,auto:false},
+  {id:'q5',cat:'fin',q:'Vocês parcelam cirurgia?',vars:['parcela no cartão','dá para parcelar a cirurgia'],a:'Parcelamos procedimentos cirúrgicos em até 6x sem juros no cartão. Acima de R$ 1.500, em até 10x.',n:41,auto:true},
+  {id:'q6',cat:'pront',q:'O resultado do exame já saiu?',vars:['o hemograma já saiu','o exame do meu pet ficou pronto','já tem o resultado'],a:'{tutor}, o {exame} do {pet} foi liberado em {data_exame}. A Dra. {vet} já revisou: {resumo_exame}. Quer que eu envie o laudo em PDF por aqui?',n:76,auto:false},
+  {id:'q7',cat:'urg',q:'Meu cachorro comeu chocolate, o que eu faço?',vars:['comeu veneno','está vomitando sangue','foi atropelado','está tendo convulsão','é uma emergência'],a:'Isso pode ser uma emergência. Traga o {pet} agora para o pronto-atendimento 24h (Rua das Acácias, 410). Não induza vômito sem orientação. Já avisei a equipe de plantão.',n:23,audio:'a2',auto:false,lock:true},
+  {id:'q8',cat:'pos',q:'Pode tirar o colar elizabetano?',vars:['posso tirar o colar hoje','quando tira o colar','ele tá tentando tirar o colar'],a:'{tutor}, o colar precisa ficar até a retirada dos pontos, marcada para {retirada}. Tirar antes aumenta o risco de o {pet} lamber e abrir a sutura. Te mandei um áudio com os cuidados.',n:38,audio:'a4',auto:true},
+  {id:'q9',cat:'banho',q:'Quanto custa banho e tosa?',vars:['valor do banho','preço da tosa'],a:'Banho a partir de R$ 60 (porte pequeno), R$ 80 (médio) e R$ 110 (grande). Tosa higiênica + R$ 25. Posso agendar?',n:65,auto:true},
+  {id:'q10',cat:'info',q:'Qual o horário de funcionamento?',vars:['vocês abrem no domingo e feriado','que horas vocês fecham','estão abertos agora'],a:'Atendemos de segunda a sábado, das 8h às 20h. O pronto-atendimento funciona 24h, inclusive domingos e feriados.',n:102,audio:'a5',auto:true},
+ ],
+ audios:[
+  {id:'a1',title:'Protocolo de vacinação de filhotes',cat:'vacina',dur:48,uses:54,by:'Dra. Paula Reis',when:'Primeira dúvida sobre vacina de pet com menos de 4 meses'},
+  {id:'a2',title:'Orientação de emergência: intoxicação',cat:'urg',dur:35,uses:12,by:'Dr. Marcos Lima',when:'Suspeita de ingestão de chocolate, veneno ou medicamento'},
+  {id:'a3',title:'Preparo para cirurgia (jejum)',cat:'pos',dur:72,uses:31,by:'Dra. Paula Reis',when:'Véspera de cirurgia agendada'},
+  {id:'a4',title:'Cuidados pós-castração',cat:'pos',dur:65,uses:40,by:'Dra. Paula Reis',when:'Dúvidas sobre colar, pontos e curativo'},
+  {id:'a5',title:'Boas-vindas e como funciona o atendimento',cat:'info',dur:22,uses:210,by:'Camila (recepção)',when:'Primeiro contato de um tutor novo'},
+ ],
+ quick:[
+  {k:'/ola',t:'Olá, {tutor}! Aqui é a Camila, da Clínica Patas & Cia. Como posso ajudar você e o {pet} hoje?',cat:'info',n:340},
+  {k:'/endereco',t:'Estamos na Rua das Acácias, 410, Jardim Botânico. Estacionamento gratuito no local.',cat:'info',n:118},
+  {k:'/pix',t:'Chave Pix (CNPJ): 12.345.678/0001-90, Patas & Cia Clínica Veterinária Ltda.',cat:'fin',n:86},
+  {k:'/jejum',t:'Para a cirurgia: jejum de 8 horas de comida e 2 horas de água.',cat:'pos',n:52},
+  {k:'/aguarde',t:'Só um instante, {tutor}, estou consultando o prontuário do {pet}.',cat:'pront',n:204},
+  {k:'/retorno',t:'O retorno do {pet} está incluso e pode ser agendado em até 15 dias.',cat:'agend',n:47},
+ ],
+ convs:[
+  {id:'c3',tutor:'Fernanda Lima',pet:'Bolt',petDesc:'SRD · 9 anos',phone:'+55 11 97412-0098',h:272,ts:5,unread:1,
+   vars:{tutor:'Fernanda',pet:'Bolt',exame:'hemograma completo',data_exame:'09/11',vet:'Paula Reis',resumo_exame:'leve anemia e função renal normal, com retorno em 30 dias',horario1:'14h30',horario2:'16h00'},
+   ctx:{erp:[['Paciente','Bolt · SRD · macho · 9 anos'],['Exame','Hemograma completo · coletado 07/11'],['Status','Liberado 09/11 · laudo PDF anexado'],['Observação','Leve anemia; renal normal; retorno 30 dias'],['Veterinária','Dra. Paula Reis']],email:[['Último e-mail','Laboratório VetLab: "Laudo 88213 disponível" · 09/11']]},
+   msgs:[{f:'c',t:'image',d:'Hoje',at:'10:10',cap:'IMG_2291.jpg'},{f:'c',t:'text',x:'Ele tá bem mais animado hoje!',d:'Hoje',at:'10:11'},{f:'c',t:'text',x:'o hemograma do Bolt já saiu?',d:'Hoje',at:'10:12'}]},
+  {id:'c1',tutor:'Mariana Souza',pet:'Thor',petDesc:'Golden Retriever · 3 meses',phone:'+55 11 98123-4410',h:150,ts:4,unread:2,
+   vars:{tutor:'Mariana',pet:'Thor',horario1:'14h30',horario2:'16h00'},
+   ctx:{erp:[['Paciente','Thor · Golden · macho'],['Idade','3 meses (nasc. 05/08/2026)'],['Peso','8,2 kg em 03/11'],['Vacinas','Nenhuma registrada'],['Agenda','Livre hoje às 14h30 e 16h00']],bank:[['Situação','Sem pendências']]},
+   msgs:[{f:'c',t:'text',x:'Oi! Peguei um filhote de golden semana passada',d:'Hoje',at:'09:40'},{f:'c',t:'text',x:'Com quantos dias ele pode tomar a primeira vacina?',d:'Hoje',at:'09:42'}]},
+  {id:'c4',tutor:'Juliana Prado',pet:'Nina',petDesc:'Shih-tzu · 2 anos',phone:'+55 11 99230-7781',h:322,ts:3,unread:1,
+   vars:{tutor:'Juliana',pet:'Nina',retirada:'sexta, 14/11, às 10h'},
+   ctx:{erp:[['Paciente','Nina · Shih-tzu · fêmea'],['Procedimento','Castração (OSH) em 04/11'],['Retirada de pontos','14/11 às 10h · agendada'],['Medicação','Meloxicam até 09/11 (concluído)']]},
+   msgs:[{f:'k',t:'text',x:'A cirurgia da Nina correu muito bem! Ela já está acordando. Pode buscar a partir das 16h.',d:'04/11',at:'13:05',by:'Camila'},{f:'c',t:'audio',dur:18,d:'Hoje',at:'09:20',tr:'Oi, a Nina tá tentando tirar o colar o tempo todo, coitada. Posso tirar hoje à noite pra ela dormir?'}]},
+  {id:'c2',tutor:'Ricardo Alves',pet:'Mel',petDesc:'Gata SRD · 6 anos',phone:'+55 11 98877-1203',h:42,ts:2,unread:2,
+   vars:{tutor:'Ricardo',pet:'Mel',descricao:'internação da Mel (05 a 07/11)',valor:'R$ 1.280,00',vencimento:'13/11/2026'},
+   ctx:{bank:[['Título','#4471 · Internação'],['Valor original','R$ 1.280,00'],['Vencimento','09/11/2026 · vencido há 1 dia'],['Com multa e juros','R$ 1.293,44']],bankAction:'2via',
+        email:[['Último e-mail','"Orçamento internação Mel" · 02/11'],['Status','Aprovado pelo tutor em 03/11']],
+        erp:[['Paciente','Mel · gata SRD · 6 anos'],['Internação','05 a 07/11 · cistite'],['Alta','07/11 · retorno 21/11']]},
+   msgs:[{f:'k',t:'text',x:'Ricardo, enviei o orçamento da internação da Mel para o seu e-mail.',d:'02/11',at:'17:22',by:'Renata'},{f:'c',t:'text',x:'Bom dia, o boleto da internação da Mel venceu ontem',d:'Hoje',at:'08:55'},{f:'c',t:'text',x:'consegue me mandar outro?',d:'Hoje',at:'08:56'}]},
+  {id:'c5',tutor:'Paulo Henrique',pet:'Luna',petDesc:'Lhasa Apso · 4 anos',phone:'+55 11 96655-4320',h:96,ts:1,unread:0,
+   vars:{tutor:'Paulo',pet:'Luna'},
+   ctx:{erp:[['Paciente','Luna · Lhasa · fêmea'],['Agenda','Banho e tosa · sáb 15/11 às 9h']]},
+   msgs:[{f:'c',t:'text',x:'Bom dia! Confirmando o banho da Luna sábado às 9h',d:'Ontem',at:'18:02'},{f:'k',t:'text',x:'Confirmado, Paulo! Até sábado.',d:'Ontem',at:'18:05',by:'Camila'},{f:'c',t:'text',x:'Valeu, até sábado!',d:'Ontem',at:'18:06'}]},
+ ],
+ flows:[
+  {id:'f1',name:'Vacinação de filhotes',cat:'vacina',status:'ativa',auto:false,nodes:[
+   {id:'n11',type:'trigger',label:'Pergunta classificada como Vacinação',detail:'Inclui variações como "primeira vacina", "V10" e "filhote"'},
+   {id:'n12',type:'erp',label:'Buscar carteira de vacinação do pet',detail:'ERP › Prontuário › Vacinas'},
+   {id:'n13',type:'cond',label:'O pet tem menos de 4 meses?',branches:[
+     {id:'b1y',label:'Sim',nodes:[{id:'n14',type:'audio',label:'Protocolo de vacinação de filhotes',ref:'a1'},{id:'n15',type:'faq',label:'Quando o filhote pode tomar a primeira vacina (V10)?',ref:'q1'},{id:'n16',type:'msg',label:'Oferecer horários livres',detail:'Usa {horario1} e {horario2} da agenda do ERP'}]},
+     {id:'b1n',label:'Não',nodes:[{id:'n17',type:'cond',label:'Reforço anual vencido?',branches:[{id:'b2y',label:'Sim',nodes:[{id:'n18',type:'msg',label:'Avisar reforço vencido e oferecer horário'}]},{id:'b2n',label:'Não',nodes:[{id:'n19',type:'msg',label:'Informar que a carteira está em dia'}]}]}]}]}],
+   sugs:[{text:'Tutores de pets com mais de 7 anos costumam pedir check-up junto com a vacina. Adicionar um convite para check-up geriátrico no ramo "Não"?',seq:'b1n',node:{type:'cond',label:'O pet tem mais de 7 anos?',branches:[{label:'Sim',nodes:[{type:'msg',label:'Sugerir check-up geriátrico junto com o reforço'}]},{label:'Não',nodes:[]}]}}]},
+  {id:'f2',name:'2ª via e cobrança',cat:'fin',status:'ativa',auto:false,nodes:[
+   {id:'n21',type:'trigger',label:'Pergunta classificada como Financeiro'},
+   {id:'n22',type:'bank',label:'Buscar títulos em aberto pelo CPF do tutor',detail:'Banco › Boletos e Pix'},
+   {id:'n23',type:'cond',label:'Existe título vencido?',branches:[
+     {id:'b3y',label:'Sim',nodes:[{id:'n24',type:'bank',label:'Gerar 2ª via com multa e juros',detail:'Sempre pede confirmação do atendente'},{id:'n25',type:'faq',label:'Pode mandar a segunda via do boleto?',ref:'q4'}]},
+     {id:'b3n',label:'Não',nodes:[{id:'n26',type:'msg',label:'Informar que não há pendências'}]}]},
+   {id:'n27',type:'cond',label:'Tutor pediu desconto ou renegociação?',branches:[{id:'b4y',label:'Sim',nodes:[{id:'n28',type:'human',label:'Transferir para o financeiro (Renata)'}]},{id:'b4n',label:'Não',nodes:[{id:'n29',type:'wait',label:'Aguardar confirmação do pagamento',detail:'Aviso automático do banco'}]}]}],
+   sugs:[{text:'Em 41 conversas o tutor pagou no mesmo dia da 2ª via. Adicionar um agradecimento automático quando o banco confirmar o pagamento?',seq:'root',node:{type:'msg',label:'Agradecer quando o pagamento for confirmado',detail:'Disparado pelo aviso do banco'}}]},
+  {id:'f3',name:'Emergência',cat:'urg',status:'ativa',auto:false,lock:true,nodes:[
+   {id:'n31',type:'trigger',label:'Sinais de emergência na mensagem',detail:'Chocolate, veneno, convulsão, atropelamento, sangramento'},
+   {id:'n32',type:'human',label:'Avisar plantão imediatamente',detail:'Notifica Dr. Marcos e Dra. Paula'},
+   {id:'n33',type:'faq',label:'Meu cachorro comeu chocolate, o que eu faço?',ref:'q7'},
+   {id:'n34',type:'audio',label:'Orientação de emergência: intoxicação',ref:'a2'}],sugs:[]},
+  {id:'f4',name:'Pós-operatório',cat:'pos',status:'sugerida',auto:false,origin:'Montada pelo Vetbot a partir de 38 conversas de pós-operatório',nodes:[
+   {id:'n41',type:'trigger',label:'Pergunta classificada como Cirurgia e pós-operatório'},
+   {id:'n42',type:'erp',label:'Buscar cirurgia e data de retirada dos pontos'},
+   {id:'n43',type:'cond',label:'Sinais de alerta? (sangramento, inchaço, febre)',branches:[
+     {id:'b5y',label:'Sim',nodes:[{id:'n44',type:'human',label:'Transferir para a veterinária responsável'}]},
+     {id:'b5n',label:'Não',nodes:[{id:'n45',type:'faq',label:'Pode tirar o colar elizabetano?',ref:'q8'},{id:'n46',type:'audio',label:'Cuidados pós-castração',ref:'a4'}]}]}],sugs:[]},
+ ],
+ ints:{
+  wa:{on:true,perm:{read:true,act:true,solo:true}}, mail:{on:true,perm:{read:true,act:false,solo:false}},
+  bank:{on:true,perm:{read:true,act:true,solo:false}}, erp:{on:true,perm:{read:true,act:true,solo:false}}, lab:{on:false,perm:{read:false,act:false,solo:false}}
+ },
+}}
+
+const POOL=[
+ {nw:{tutor:'Carla Mendes',pet:'Pipoca',petDesc:'Beagle · 2 anos',phone:'+55 11 97654-3321',h:2},text:'meu cachorro comeu chocolate agora, o que eu faço??'},
+ {conv:'c5',text:'Ah, esqueci de perguntar: vocês abrem domingo?'},
+ {nw:{tutor:'Bruno Teixeira',pet:'Floquinho',petDesc:'Poodle · 5 anos',phone:'+55 11 95432-8765',h:186},text:'quanto fica banho e tosa pra um poodle?'},
+ {conv:'c5',text:'Outra coisa: vocês atendem coelho? Minha filha ganhou um'},
+];
+
+let S;
+const KEY='vetbot-demo-v3';
+function load(){try{const r=localStorage.getItem(KEY);if(r){S=Object.assign(seed(),JSON.parse(r));return}}catch(e){}S=seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+load();
+
+/* ============ Navegação ============ */
+const ROUTES=[
+ ['atendimento','Atendimento','chat'],['conhecimento','Base de respostas','book'],['trilhas','Trilhas','flow'],
+ ['audios','Áudios e mídias','mic'],['rapidas','Mensagens rápidas','zap'],['integracoes','Integrações','plug']
+];
+const route=()=>{const h=location.hash.slice(1);return ROUTES.some(r=>r[0]===h)?h:'atendimento'};
+function renderNav(){
+ const r=route();const unread=S.convs.reduce((a,c)=>a+(c.unread||0),0);
+ $('#nav').innerHTML=ROUTES.map(([id,name,i])=>`<a href="#${id}" class="${r===id?'on':''}">${ic(i)}<span>${name}</span>${id==='atendimento'&&unread?`<span class="badge">${unread}</span>`:''}</a>`).join('');
+ document.querySelectorAll('#modeSeg button').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.mode);b.setAttribute('aria-checked',b.dataset.v===S.mode)});
+ const R=ROUTES.find(x=>x[0]===r);$('#title').textContent=R[1];
+ $('#topx').innerHTML=r==='atendimento'?`<button class="btn sm" data-a="simulate">${ic('plus')}Simular mensagem de cliente</button>`:'';
+}
+function render(){renderNav();const r=route();const v=$('#view');
+ v.innerHTML=({atendimento:vInbox,conhecimento:vKb,trilhas:vFlows,audios:vMedia,rapidas:vQuick,integracoes:vInts})[r]();
+ if(r==='atendimento'){const m=$('#msgs');if(m)m.scrollTop=m.scrollHeight;const ta=$('#composer');if(ta)ta.value=S.draft[S.sel]||''}
+ save();
+}
+window.addEventListener('hashchange',()=>{$('#view').scrollTop=0;render()});
+
+/* ============ Atendimento ============ */
+const curConv=()=>S.convs.find(c=>c.id===S.sel)||S.convs[0];
+const initials=n=>n.split(' ').map(p=>p[0]).slice(0,2).join('');
+function lastClient(c){const ms=c.msgs.filter(m=>m.f==='c');const last=ms[ms.length-1];if(!last)return null;const txt=m=>m.t==='audio'?(m.tr||''):(m.x||'');const lastIdx=c.msgs.lastIndexOf(last);const t0=txt(last);const pending=lastIdx===c.msgs.length-1&&(t0.includes('?')||t0.length>28||last.t==='audio');return {text:txt(last),two:ms.slice(-2).map(txt).join(' '),pending}}
+function analyze(c){
+ const lc=lastClient(c);if(!lc||!lc.pending)return {pending:false};
+ const rank=S.faqs.map(f=>({f,s:Math.max(faqScore(lc.text,f),faqScore(lc.two,f)*.95)})).sort((a,b)=>b.s-a.s);
+ const best=rank[0];const pick=S.alt[c.id]?rank.find(r=>r.f.id===S.alt[c.id])||best:best;
+ const c0=conf(best.s);const g1=guessCat(lc.text);const catId=c0>=.45?best.f.cat:(toks(lc.text).some(t=>CATS.some(c=>c.kw.some(k=>t.startsWith(k))))?g1:guessCat(lc.two));
+ return {pending:true,text:lc.text,rank,best,pick,conf:c0,match:c0>=.45,cat:catId,urgent:catId==='urg'&&c0>=.45||/chocolate|veneno|convuls|atropel|sangr/i.test(n1(lc.text))};
+}
+function convPreview(c){const m=c.msgs[c.msgs.length-1];if(!m)return'';const p=m.f==='k'?(m.auto?'Vetbot: ':'Você: '):'';return p+(m.t==='image'?'Foto':m.t==='audio'?'Áudio '+fmtDur(m.dur||0):m.x)}
+function vInbox(){
+ const convs=[...S.convs].sort((a,b)=>b.ts-a.ts);const c=curConv();
+ const cls=['inbox','pane-'+(S.pane||'list'),S.showCop?'show-cop':''].join(' ');
+ return `<div class="${cls}">
+ <section class="convs" aria-label="Conversas">
+  <div class="convs-head"><div class="row"><b class="grow">Conversas</b><span class="pill ok">${ic('phone')}WhatsApp conectado</span></div></div>
+  <div class="conv-list">${convs.map(x=>{const an=analyze(x);const last=x.msgs[x.msgs.length-1];return `<button class="conv ${x.id===c.id?'on':''} ${an.urgent?'urgent':''}" data-a="sel" data-id="${x.id}">
+   <span class="av" style="--h:${x.h}">${esc(initials(x.tutor))}</span>
+   <span style="min-width:0"><span class="nm">${esc(x.tutor)}</span><span class="pv" style="display:block">${esc(convPreview(x))}</span>
+   <span class="tags">${an.pending?(an.urgent?'<span class="pill bad">Urgente</span>':chip(an.cat)):'<span class="pill neu">Respondida</span>'}${last&&last.auto?'<span class="pill ai">Vetbot</span>':''}</span></span>
+   <span class="meta"><span>${esc(last?last.at:'')}</span>${x.unread?`<span class="badge">${x.unread}</span>`:''}</span></button>`}).join('')}</div>
+ </section>
+ <section class="chat" aria-label="Conversa">${vChat(c)}</section>
+ <aside class="copilot" aria-label="Copiloto Vetbot">${vCopilot(c)}</aside>
+ </div>`;
+}
+function msgHTML(m,c){
+ let body='';
+ if(m.t==='text')body=esc(m.x);
+ else if(m.t==='image')body=`<div class="photo">${m.src?`<img src="${m.src}" alt="Imagem enviada">`:ic('image')}</div><span class="dur">${esc(m.cap||'imagem.jpg')}</span>`;
+ else if(m.t==='audio'){const pid='m'+(m.id||(m.id=uid('m')));body=`<div class="player"><button class="play" data-a="play" data-pid="${pid}" data-dur="${m.dur||20}" ${m.src?`data-src="${m.src}"`:''} aria-label="Ouvir áudio">${ic('play')}</button>${wave(pid,30)}<span class="dur mono">${fmtDur(m.dur||20)}</span></div>${m.title?`<span class="dur">Áudio padrão: ${esc(m.title)}</span>`:''}${m.tr?`<span class="transcript"><b>Transcrição automática:</b> ${esc(m.tr)}</span>`:''}`}
+ const by=m.f==='k'?(m.auto?'Vetbot · automático':(m.by||'Você')+(m.sugg?' · sugestão do Vetbot':'')):'';
+ return `<div class="bub ${m.f==='k'?'out':''} ${m.flash?'flash':''}">${by?`<span class="by">${esc(by)}</span>`:''}${body}<span class="bt">${esc(m.at)}${m.f==='k'?' ✓✓':''}</span></div>`;
+}
+function vChat(c){
+ let d='';const ms=c.msgs.map(m=>{let s='';if(m.d!==d){d=m.d;s+=`<div class="dsep">${esc(d)}</div>`}const h=s+msgHTML(m,c);m.flash=false;return h}).join('');
+ return `<div class="chat-head"><button class="iconbtn backbtn" data-a="pane" data-v="list" aria-label="Voltar">${ic('back')}</button>
+  <span class="av" style="--h:${c.h}">${esc(initials(c.tutor))}</span>
+  <div class="who"><b>${esc(c.tutor)}</b><span>${esc(c.pet)} · ${esc(c.petDesc)} · <span class="mono">${esc(c.phone)}</span></span></div>
+  <button class="btn sm copbtn" data-a="cop" aria-label="Abrir copiloto">${ic('spark')}Copiloto</button></div>
+ <div class="msgs" id="msgs">${ms}</div>
+ <div class="composer" id="composerWrap"><div class="quickpop" id="quickpop" hidden></div>
+  <button class="iconbtn" data-a="attach-img" aria-label="Enviar imagem">${ic('image')}</button>
+  <button class="iconbtn" data-a="attach-aud" aria-label="Enviar áudio">${ic('mic')}</button>
+  <textarea id="composer" rows="1" placeholder="Mensagem (digite / para atalhos)"></textarea>
+  <button class="iconbtn send" data-a="send" aria-label="Enviar">${ic('send')}</button></div>
+ <div class="hint">Enter envia · Shift+Enter quebra linha · <span class="mono">/</span> abre mensagens rápidas</div>`;
+}
+function ctxBox(c){
+ const x=c.ctx||{};const parts=[];
+ const box=(icn,src,rows,extra='')=>`<div class="cbox"><div class="src">${ic(icn)}${src}</div><dl class="kv">${rows.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${extra}</div>`;
+ if(x.erp)parts.push(box('db','Prontuário · ERP',x.erp));
+ if(x.bank){let extra='';if(x.bankAction==='2via'&&!c.vars.link){extra=S.confirm2via===c.id?`<div class="cbox learn"><b>Gerar 2ª via de R$ 1.293,44 com vencimento em 13/11?</b><div class="row"><button class="btn sm pri" data-a="2via-ok">${ic('check')}Confirmar e gerar</button><button class="btn sm" data-a="2via-no">Cancelar</button></div></div>`:`<button class="btn sm" data-a="2via">${ic('bank')}Gerar 2ª via</button>`}else if(c.vars.link){extra=`<span class="pill ok">${ic('check')}2ª via gerada: ${esc(c.vars.link)}</span>`}parts.push(box('bank','Banco · cobranças',x.bank,extra))}
+ if(x.email)parts.push(box('mail','E-mail da clínica',x.email));
+ if(!parts.length)parts.push(`<div class="cbox"><div class="src">${ic('db')}Prontuário · ERP</div><p class="muted">Tutor não encontrado no ERP pelo telefone.</p><button class="btn sm" data-a="toast" data-m="Cadastro aberto no ERP com nome e telefone preenchidos.">${ic('plus')}Criar cadastro no ERP</button></div>`);
+ return `<div class="eyebrow">Contexto montado pelo Vetbot</div>${parts.join('')}`;
+}
+function vCopilot(c){
+ const head=`<div class="cop-head">${ic('spark')}<h2>Vetbot</h2>${S.mode==='auto'?'<span class="pill ai">Automático</span>':S.mode==='off'?'<span class="pill bad">Desligado</span>':'<span class="pill ok">Copiloto</span>'}<button class="iconbtn" data-a="cop-close" aria-label="Fechar copiloto">${ic('x')}</button></div>`;
+ if(S.mode==='off'){
+  return head+`<div class="cop-body"><div class="cbox"><h3>${ic('user')}Você está no controle</h3><p class="muted">O agente não sugere nem responde. A base de respostas continua disponível para consulta.</p>
+  <input type="search" id="manualq" placeholder="Buscar na base de respostas"><div id="manualres" class="faqs"></div></div></div>`;
+ }
+ const an=analyze(c);let h='';
+ if(S.learn&&S.learn.conv===c.id){const L=S.learn;
+  h+=L.faqId?`<div class="cbox learn"><h3>${ic('spark')}Aprender com sua resposta</h3><p>Você ajustou a resposta padrão de <b>“${esc(S.faqs.find(f=>f.id===L.faqId)?.q)}”</b>. Quer que esta versão vire o padrão?</p><div class="row"><button class="btn sm pri" data-a="learn-up">Atualizar resposta padrão</button><button class="btn sm" data-a="learn-skip">Só desta vez</button></div></div>`
+  :`<div class="cbox learn"><h3>${ic('spark')}Nova pergunta para a base</h3><p>“${esc(L.q)}” ainda não tinha resposta padrão. Salvar a sua resposta?</p><label class="f">Categoria sugerida pelo Vetbot<select id="learncat">${CATS.map(x=>`<option value="${x.id}" ${x.id===L.cat?'selected':''}>${x.name}</option>`).join('')}</select></label><div class="row"><button class="btn sm pri" data-a="learn-save">${ic('check')}Salvar na base</button><button class="btn sm" data-a="learn-skip">Agora não</button></div></div>`;
+ }
+ if(!an.pending){h+=`<div class="cbox"><h3>${ic('check')}Nada pendente</h3><p class="muted">A última mensagem desta conversa já foi respondida.</p></div>`;return head+`<div class="cop-body">${h}${ctxBox(c)}</div>`}
+ if(an.urgent)h+=`<div class="cbox alert"><h3>${ic('alert')}Possível emergência</h3><p>Em emergências o Vetbot nunca responde sozinho, mesmo no modo automático. Revise e envie a orientação.</p><button class="btn sm pri" data-a="notify" style="align-self:flex-start">${ic('phone')}Avisar plantão agora</button></div>`;
+ h+=`<div class="cbox"><div class="row"><span class="eyebrow grow">Assunto identificado</span>${chip(an.cat)}</div><div class="conf"><span>Confiança</span><div class="bar"><span style="width:${Math.round(an.conf*100)}%"></span></div><span class="mono">${Math.round(an.conf*100)}%</span></div><p class="muted" style="font-size:12.5px">“${esc(an.text)}”</p></div>`;
+ if(an.match){
+  const f=an.pick.f;const txt=S.suggEdit[c.id+':'+f.id]??fill(f.a,c.vars);const missing=(txt.match(/\{\w+\}/g)||[]);
+  h+=`<div class="cbox hl"><div class="row"><h3 class="grow">${ic('book')}Resposta sugerida</h3><span class="pill neu">usada ${f.n}×</span></div>
+   <textarea id="sugg" rows="6" data-key="${c.id}:${f.id}">${esc(txt)}</textarea>
+   ${missing.length?`<p class="muted" style="font-size:12.5px">Falta preencher ${missing.map(m=>`<span class="mono">${esc(m)}</span>`).join(', ')}. ${c.ctx?.bankAction&&!c.vars.link?'Gere a 2ª via no card do banco abaixo.':''}</p>`:(/\{\w+\}/.test(f.a)?`<p class="muted" style="font-size:12.5px">Preenchida com dados do ${f.cat==='fin'?'banco':'prontuário'} e da conversa.</p>`:`<p class="muted" style="font-size:12.5px">Texto padrão da clínica.</p>`)}
+   <div class="row"><button class="btn sm pri" data-a="send-sugg" data-f="${f.id}" ${missing.length?'disabled':''}>${ic('send')}Enviar</button><button class="btn sm" data-a="use-sugg">${ic('edit')}Editar no campo</button></div></div>`;
+  if(f.audio){const a=S.audios.find(x=>x.id===f.audio);if(a)h+=`<div class="cbox"><h3>${ic('mic')}Áudio padrão cabível</h3><div class="player"><button class="play" data-a="play" data-pid="lib${a.id}" data-dur="${a.dur}" ${a.src?`data-src="${a.src}"`:''} aria-label="Ouvir">${ic('play')}</button>${wave('lib'+a.id,26)}<span class="dur mono">${fmtDur(a.dur)}</span></div><p style="font-size:13px"><b>${esc(a.title)}</b> <span class="muted">· gravado por ${esc(a.by)}</span></p><button class="btn sm" data-a="send-audio" data-id="${a.id}" style="align-self:flex-start">${ic('send')}Enviar áudio</button></div>`}
+  const alts=an.rank.filter(r=>r.f.id!==f.id&&conf(r.s)>=.3).slice(0,2);
+  if(alts.length)h+=`<div class="cbox"><span class="eyebrow">Outras respostas parecidas</span>${alts.map(r=>`<button class="alt" data-a="alt" data-id="${r.f.id}"><span class="grow">${esc(r.f.q)}</span><span class="pct">${Math.round(conf(r.s)*100)}%</span></button>`).join('')}</div>`;
+ }else{
+  h+=`<div class="cbox"><h3>${ic('book')}Sem resposta padrão parecida</h3><p class="muted">Responda pelo campo de mensagem. Depois o Vetbot oferece salvar a sua resposta na base, já categorizada.</p>${an.rank.slice(0,1).map(r=>`<button class="alt" data-a="alt-force" data-id="${r.f.id}"><span class="grow">Mais próxima: ${esc(r.f.q)}</span><span class="pct">${Math.round(conf(r.s)*100)}%</span></button>`).join('')}</div>`;
+ }
+ return head+`<div class="cop-body">${h}${ctxBox(c)}</div>`;
+}
+function pushMsg(c,m){m.d='Hoje';m.at=nowHM();c.msgs.push(m);c.ts=Date.now()}
+function sendText(text,meta={}){
+ const c=curConv();text=text.trim();if(!text)return;
+ const an=analyze(c);
+ pushMsg(c,{f:'k',t:'text',x:text,by:'Camila',sugg:!!meta.faq});
+ S.draft[c.id]='';
+ if(meta.faq){const f=S.faqs.find(x=>x.id===meta.faq);f.n++;const orig=fill(f.a,c.vars);if(text!==orig.trim())S.learn={conv:c.id,faqId:f.id,text:unfill(text,c.vars)};else S.learn=null}
+ else if(an.pending&&!an.match){S.learn={conv:c.id,q:an.text,text:unfill(text,c.vars),cat:an.cat}}
+ else if(an.pending&&an.match&&!meta.faq){S.learn=null}
+ c.unread=0;render();
+}
+function incoming(){
+ const p=POOL[S.poolIdx%POOL.length];S.poolIdx++;let c;
+ if(p.nw){c=S.convs.find(x=>x.tutor===p.nw.tutor);if(!c){c={id:uid('c'),...p.nw,ts:Date.now(),unread:0,vars:{tutor:p.nw.tutor.split(' ')[0],pet:p.nw.pet},ctx:{},msgs:[]};S.convs.push(c)}}
+ else c=S.convs.find(x=>x.id===p.conv)||S.convs[0];
+ pushMsg(c,{f:'c',t:'text',x:p.text,flash:true});c.unread=(c.unread||0)+1;S.sel=c.id;S.pane='chat';S.learn=null;
+ const an=analyze(c);
+ if(an.urgent)toast('Possível emergência: '+c.tutor+' ('+c.pet+')');
+ render();
+ if(S.mode==='auto'&&an.match&&!an.urgent&&an.best.f.auto&&an.conf>=.7){
+  setTimeout(()=>{const f=an.best.f;const t=fill(f.a,c.vars);if(/\{\w+\}/.test(t))return;pushMsg(c,{f:'k',t:'text',x:t,auto:true});f.n++;
+   if(f.audio){const a=S.audios.find(x=>x.id===f.audio);if(a&&a.id!=='a5'){pushMsg(c,{f:'k',t:'audio',dur:a.dur,title:a.title,auto:true,src:a.src});a.uses++}}
+   c.unread=0;toast('Vetbot respondeu sozinho: '+cat(f.cat).name);render()},1300);
+ }else if(S.mode==='auto'&&an.pending&&!an.urgent){setTimeout(()=>toast(an.match&&!an.best.f.auto?'Categoria sem envio automático liberado: aguardando você':'Sem resposta segura: o Vetbot deixou para você'),900)}
+}
+
+/* ============ Base de respostas ============ */
+const SAMPLE=(()=>{
+ const P2=[
+ ['Ana Ribeiro','Bom dia! Vocês abrem no domingo?','Bom dia, Ana! Aos domingos funciona só o pronto-atendimento 24h. Consultas de segunda a sábado, das 8h às 20h.'],
+ ['Carlos Nunes','Vocês atendem animais exóticos? Tenho um coelho','Atendemos sim! A Dra. Lívia é especialista em silvestres e exóticos e atende às terças e quintas.'],
+ ['Beatriz Melo','Aceitam plano de saúde pet?','Aceitamos os planos Saúde Pet Mais e VidaPet. Para outros planos, emitimos recibo para reembolso.'],
+ ['Diego Ramos','Precisa de jejum para exame de sangue?','Sim, jejum de 8 horas de comida. Água pode ser oferecida normalmente.'],
+ ['Elisa Costa','Qual o horário de vocês?','Atendemos de segunda a sábado, das 8h às 20h. Pronto-atendimento 24h todos os dias.'],
+ ['Fábio Lopes','Meu gato precisa de jejum pro exame de sangue?','Precisa sim: 8 horas sem comida. Água liberada.'],
+ ['Gabriela Dias','Vcs atendem coelho?','Atendemos! A Dra. Lívia atende exóticos às terças e quintas. Quer agendar?'],
+ ['Helena Prates','Pode mandar a segunda via do boleto?','Claro, Helena! Segue o link da 2ª via: pag.patasecia.com.br/2v/3920'],
+ ['Igor Martins','Aceita plano de saúde para pet?','Trabalhamos com Saúde Pet Mais e VidaPet. Para outros planos, emitimos recibo para reembolso.'],
+ ['João Pedro','tem que fazer jejum antes do exame de sangue?','Sim, 8 horas de jejum alimentar. A água pode manter.'],
+ ['Karina Alves','Vocês abrem feriado?','No feriado funciona o pronto-atendimento 24h. Consultas eletivas voltam no dia seguinte.'],
+ ['Lucas Freitas','Quanto custa a castração de gata?','A castração de gatas custa R$ 450,00, incluindo anestesia inalatória e retorno para retirada dos pontos.'],
+ ['Marina Gomes','Qual o valor da castração de gata?','Para gatas, a castração sai por R$ 450,00, com anestesia inalatória e retorno incluso.'],
+ ['Nathalia Reis','Atendem hamster?','Sim! Exóticos e pequenos roedores com a Dra. Lívia, às terças e quintas.'],
+ ['Otávio Brito','Quanto fica castrar uma gata?','R$ 450,00, com anestesia inalatória e retorno para retirar os pontos.'],
+ ['Patrícia Luz','Vocês aceitam plano pet?','Aceitamos Saúde Pet Mais e VidaPet. Para os demais, recibo para reembolso.'],
+ ['Rafael Souto','O boleto venceu, consegue mandar outro?','Consigo sim! Nova 2ª via: pag.patasecia.com.br/2v/4102'],
+ ['Sabrina Moura','Que horas vocês fecham hoje?','Hoje fechamos às 20h. Depois disso, o pronto-atendimento 24h segue funcionando.'],
+ ['Tiago Neves','meu cachorro precisa ficar em jejum pro exame de sangue?','Sim, 8 horas de jejum de comida. Água à vontade.'],
+ ['Vanessa Rocha','Vocês fazem castração de gata? Qual o preço?','Fazemos sim! R$ 450,00 com anestesia inalatória e retorno incluso.'],
+ ['Wagner Pinto','Vocês vendem ração?','Não vendemos ração na clínica, mas indicamos a loja ao lado.'],
+ ];
+ const L=[];P2.forEach(([n,q,a],i)=>{const d=String(1+(i%27)).padStart(2,'0')+'/0'+(8+(i%2))+'/2026';const h=String(8+(i%10)).padStart(2,'0');L.push(`${d} ${h}:1${i%10} - ${n}: ${q}`);L.push(`${d} ${h}:2${i%10} - Clínica Patas & Cia: ${a}`);if(i%4===0)L.push(`${d} ${h}:3${i%10} - ${n}: Obrigada!`)});
+ return L.join('\n');
+})();
+const RX=/^\[?(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2})(?::\d{2})?\]?\s*(?:-\s*)?([^:]{1,60}?):\s(.*)$/;
+function parseExport(txt){const out=[];for(const raw of txt.split(/\r?\n/)){const m=raw.match(RX);if(m)out.push({who:m[3].trim(),x:m[4]});else if(out.length&&raw.trim())out[out.length-1].x+=' '+raw.trim()}return out}
+const QWORDS=/^(qual|quais|quanto|quanta|quando|como|onde|voces|vcs|tem|pode|posso|consegue|aceitam|aceita|atendem|precisa|fazem|que horas)/;
+function runAnalysis(txt,file){
+ const lines=parseExport(txt);
+ const senders=[...new Set(lines.map(l=>l.who))];
+ const clinic=(S.an&&S.an.clinic&&senders.includes(S.an.clinic))?S.an.clinic:(senders.find(s=>/cl[ií]nica|vet|atendimento|pet/i.test(s))||senders[0]);
+ S.an={file,stage:0,clinic,senders,txt};render();
+ const qa=[];for(let i=0;i<lines.length;i++){const l=lines[i];if(l.who===clinic)continue;const t=n1(l.x).trim();if(!(l.x.includes('?')||QWORDS.test(t)))continue;const nx=lines.slice(i+1).find(x=>x.who===clinic);if(nx)qa.push({q:l.x,a:nx.x})}
+ const merged={};const rest=[];
+ qa.forEach(p=>{const r=S.faqs.map(f=>({f,s:faqScore(p.q,f)})).sort((a,b)=>b.s-a.s)[0];if(r&&r.s>=.42){merged[r.f.id]=(merged[r.f.id]||0)+1}else rest.push(p)});
+ const cl=[];rest.forEach(p=>{let best=null,bs=0;cl.forEach(c=>{const s=Math.max(...c.items.map(it=>sim(p.q,it.q)));if(s>bs){bs=s;best=c}});if(best&&bs>=.38)best.items.push(p);else cl.push({items:[p]})});
+ const clusters=cl.filter(c=>c.items.length>=2).map(c=>{const rep=c.items.map(x=>({x,s:c.items.reduce((a,y)=>a+sim(x.q,y.q),0)})).sort((a,b)=>b.s-a.s)[0].x.q;const ans=c.items.map(x=>x.a).sort((a,b)=>b.length-a.length)[0];return {id:uid('k'),q:rep.charAt(0).toUpperCase()+rep.slice(1),examples:c.items.map(x=>x.q),a:ans,n:c.items.length,cat:guessCat(c.items.map(x=>x.q).join(' ')),status:'pend'}});
+ const singles=cl.filter(c=>c.items.length<2).length;
+ const steps=[400,900,1400,1900];
+ steps.forEach((t,i)=>setTimeout(()=>{if(!S.an||S.an.txt!==txt)return;S.an.stage=i+1;if(i===3){Object.assign(S.an,{result:{lines:lines.length,qa:qa.length,merged,clusters,singles}})}if(route()==='conhecimento')render()},t));
+}
+function vKb(){
+ const tot=S.faqs.reduce((a,f)=>a+f.n,0);const pend=S.an?.result?S.an.result.clusters.filter(c=>c.status==='pend').length:0;
+ let list=S.faqs.filter(f=>(S.kbCat==='all'||f.cat===S.kbCat)&&(!S.kbQ||n1(f.q+' '+f.a+' '+(f.vars||[]).join(' ')).includes(n1(S.kbQ))));list.sort((a,b)=>b.n-a.n);
+ const max=Math.max(...S.faqs.map(f=>f.n),1);
+ return `<div class="page">
+ <p class="muted" style="max-width:68ch">A base guarda as perguntas que os tutores mais fazem e a forma como a clínica costuma responder. Quando chega uma pergunta parecida, o Vetbot sugere a resposta padrão já preenchida com os dados do pet.</p>
+ <div class="stats"><div class="card stat"><b class="mono">${S.faqs.length}</b><span>respostas padrão</span></div><div class="card stat"><b class="mono">${tot.toLocaleString('pt-BR')}</b><span>perguntas atendidas pela base</span></div><div class="card stat"><b class="mono">${S.faqs.filter(f=>f.auto).length}</b><span>liberadas para envio automático</span></div><div class="card stat"><b class="mono">${pend}</b><span>sugestões aguardando você</span></div></div>
+ <section class="card" style="overflow:hidden">
+  <div class="pad" style="display:flex;flex-direction:column;gap:12px"><h2>Aprender com conversas antigas</h2>
+  <label class="drop" id="drop" for="upfile"><span class="ico">${ic('upload')}</span><span class="grow"><b>Envie conversas exportadas do WhatsApp (.txt)</b><br><span class="muted">No WhatsApp: abra a conversa › Mais › Exportar conversa › Sem mídia. Pode enviar vários arquivos.</span></span><span class="btn pri">Escolher arquivos</span><input type="file" id="upfile" accept=".txt,text/plain" multiple hidden></label>
+  <div class="row"><button class="btn sm" data-a="sample">${ic('spark')}Analisar conversa de exemplo</button><span class="muted" style="font-size:12.5px">21 atendimentos reais simulados da Clínica Patas &amp; Cia</span></div></div>
+  ${S.an?vAnalysis():''}
+ </section>
+ <section class="card">
+  <div class="pad row" style="border-bottom:1px solid var(--line)"><h2 class="grow">Respostas padrão</h2><input type="search" id="kbq" placeholder="Buscar pergunta ou resposta" value="${esc(S.kbQ)}" style="max-width:260px"><button class="btn sm pri" data-a="faq-new">${ic('plus')}Nova resposta</button></div>
+  <div class="pad filters" style="padding-bottom:0"><button data-a="kbcat" data-c="all" class="${S.kbCat==='all'?'on':''}">Todas</button>${CATS.map(c=>`<button data-a="kbcat" data-c="${c.id}" class="${S.kbCat===c.id?'on':''}">${c.name}</button>`).join('')}</div>
+  <div class="faqs" style="margin-top:8px">${list.map(f=>{const au=S.audios.find(a=>a.id===f.audio);return `<div class="faq"><div style="min-width:0"><div class="row" style="gap:6px">${chip(f.cat)}${au?`<span class="pill ai">${ic('mic')}${esc(au.title)}</span>`:''}${f.lock?'<span class="pill bad">Sempre com humano</span>':''}</div><div class="q" style="margin-top:6px">${esc(f.q)}</div><div class="a">${esc(f.a)}</div><div class="muted" style="font-size:12px;margin-top:3px">${(f.vars||[]).length} variações reconhecidas</div></div>
+   <div class="freq"><span class="mono">${f.n}× usada</span><div class="bar"><span style="width:${f.n/max*100}%"></span></div></div>
+   <div class="row" style="flex-direction:column;align-items:flex-end"><label class="row" style="font-size:12px;color:var(--muted);gap:6px" title="Permite que o Vetbot envie sozinho no modo automático">Automático <input type="checkbox" class="sw" data-a="faq-auto" data-id="${f.id}" ${f.auto?'checked':''} ${f.lock?'disabled':''}></label><button class="btn sm ghost" data-a="faq-edit" data-id="${f.id}">${ic('edit')}Editar</button></div></div>`}).join('')||'<div class="empty">Nenhuma resposta nesta categoria.</div>'}</div>
+ </section></div>`;
+}
+function vAnalysis(){
+ const A=S.an;const st=['Lendo mensagens e separando tutor e clínica','Encontrando perguntas e respostas','Agrupando perguntas parecidas','Sugerindo categorias e respostas padrão'];
+ let h=`<div class="pad" style="border-top:1px solid var(--line);display:flex;flex-direction:column;gap:14px"><div class="row"><b class="grow">${ic('book')} ${esc(A.file)}</b>${A.senders.length>1?`<label class="row" style="font-size:12.5px;color:var(--muted)">Quem é a clínica? <select id="ansender" style="width:auto">${A.senders.map(s=>`<option ${s===A.clinic?'selected':''}>${esc(s)}</option>`).join('')}</select></label>`:''}<button class="btn sm ghost" data-a="an-close">${ic('x')}Fechar</button></div>`;
+ if(!A.result){h+=`<div class="steps">${st.map((s,i)=>`<div class="step ${i<A.stage?'done':i===A.stage?'cur':''}"><span class="dot">${i<A.stage?ic('check'):''}</span>${s}</div>`).join('')}</div></div>`;return h}
+ const R=A.result;const mergedTxt=Object.entries(R.merged).map(([id,n])=>{const f=S.faqs.find(x=>x.id===id);return f?`${esc(f.q)} <b class="mono">+${n}</b>`:''}).filter(Boolean);
+ h+=`<div class="stats"><div class="card stat"><b class="mono">${R.lines}</b><span>mensagens lidas</span></div><div class="card stat"><b class="mono">${R.qa}</b><span>perguntas com resposta da clínica</span></div><div class="card stat"><b class="mono">${R.clusters.length}</b><span>perguntas recorrentes novas</span></div><div class="card stat"><b class="mono">${R.singles}</b><span>perguntas que apareceram uma vez só</span></div></div>`;
+ if(mergedTxt.length)h+=`<div class="cbox"><span class="eyebrow">Já estavam na base · ocorrências somadas</span><div style="font-size:13px;display:flex;flex-direction:column;gap:3px">${mergedTxt.map(t=>`<span>${t}</span>`).join('')}</div></div>`;
+ const pend=R.clusters.filter(c=>c.status==='pend');
+ h+=`<div class="row"><h3 class="grow">O Vetbot sugere ${pend.length} novas respostas padrão</h3>${pend.length?`<button class="btn sm pri" data-a="cl-all">${ic('check')}Aprovar todas</button>`:''}</div></div>`;
+ h+=R.clusters.map((c,i)=>c.status!=='pend'?`<div class="cluster" style="grid-template-columns:1fr"><span class="row">${c.status==='ok'?`<span class="pill ok">${ic('check')}Adicionada</span>`:'<span class="pill neu">Descartada</span>'}<span>${esc(c.q)}</span></span></div>`:`<div class="cluster">
+  <div style="min-width:0"><div class="row"><span class="pill warn">Apareceu ${c.n} vezes</span></div><div class="q" style="font-weight:700;margin-top:8px">${esc(c.q)}</div><ul class="examples">${c.examples.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>
+  <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><label class="f">Como a clínica costuma responder<textarea rows="3" id="cla-${i}">${esc(c.a)}</textarea></label>
+   <label class="f">Categoria (sugerida pelo Vetbot)<select id="clc-${i}">${CATS.map(x=>`<option value="${x.id}" ${x.id===c.cat?'selected':''}>${x.name}</option>`).join('')}</select></label>
+   <div class="row"><button class="btn sm pri" data-a="cl-ok" data-i="${i}">${ic('check')}Aprovar</button><button class="btn sm" data-a="cl-no" data-i="${i}">Descartar</button></div></div></div>`).join('');
+ return h;
+}
+function approveCluster(i){const c=S.an.result.clusters[i];if(!c||c.status!=='pend')return;const a=$('#cla-'+i)?.value??c.a;const ct=$('#clc-'+i)?.value??c.cat;S.faqs.push({id:uid('q'),cat:ct,q:c.q,vars:c.examples.filter(e=>e!==c.q),a,n:c.n,auto:false});c.status='ok'}
+function faqModal(f){
+ const isNew=!f;f=f||{id:'',cat:'info',q:'',vars:[],a:'',n:0,auto:false};
+ openModal(`<div class="mhead"><h2>${isNew?'Nova resposta padrão':'Editar resposta padrão'}</h2><button class="iconbtn" data-a="close" aria-label="Fechar">${ic('x')}</button></div>
+ <form class="mbody" id="faqform" data-id="${f.id}">
+  <label class="f">Pergunta principal<input type="text" id="ff-q" value="${esc(f.q)}" required></label>
+  <label class="f">Outras formas de perguntar (uma por linha)<textarea id="ff-v" rows="3">${esc((f.vars||[]).join('\n'))}</textarea></label>
+  <label class="f">Resposta padrão<textarea id="ff-a" rows="5" required>${esc(f.a)}</textarea></label>
+  <p class="muted" style="font-size:12px">Variáveis preenchidas pelo contexto: <span class="mono">{tutor} {pet} {horario1} {valor} {vencimento} {link} {exame} {vet}</span></p>
+  <div class="row" style="align-items:flex-start"><label class="f grow">Categoria<select id="ff-c">${CATS.map(c=>`<option value="${c.id}" ${c.id===f.cat?'selected':''}>${c.name}</option>`).join('')}</select></label>
+  <label class="f grow">Áudio padrão vinculado<select id="ff-au"><option value="">Nenhum</option>${S.audios.map(a=>`<option value="${a.id}" ${a.id===f.audio?'selected':''}>${esc(a.title)}</option>`).join('')}</select></label></div>
+ </form>
+ <div class="mfoot">${!isNew?`<button class="btn danger" data-a="faq-del" data-id="${f.id}" style="margin-right:auto">${ic('trash')}Excluir</button>`:''}<button class="btn" data-a="close">Cancelar</button><button class="btn pri" data-a="faq-save">${ic('check')}Salvar</button></div>`);
+}
+
+/* ============ Trilhas ============ */
+const NT={trigger:['Gatilho','zap'],cond:['Condição','flow'],faq:['Resposta padrão','book'],msg:['Mensagem','chat'],quick:['Mensagem rápida','zap'],audio:['Áudio padrão','mic'],erp:['Consultar ERP','db'],bank:['Consultar banco','bank'],email:['Consultar e-mail','mail'],wait:['Aguardar','wait'],human:['Transferir para equipe','user']};
+const curFlow=()=>S.flows.find(f=>f.id===S.flowSel)||S.flows[0];
+function findSeq(nodes,id){if(id==='root')return null;for(const n of nodes){if(n.branches)for(const b of n.branches){if(b.id===id)return b.nodes;const r=findSeq(b.nodes,id);if(r)return r}}return null}
+function findNode(nodes,id,parent){for(const n of nodes){if(n.id===id)return {n,arr:nodes};if(n.branches)for(const b of n.branches){const r=findNode(b.nodes,id);if(r)return r}}return null}
+function withIds(n){n.id=uid();if(n.branches)n.branches.forEach(b=>{b.id=uid('b');b.nodes.forEach(withIds)});return n}
+function countNodes(ns){return ns.reduce((a,n)=>a+1+(n.branches?n.branches.reduce((x,b)=>x+countNodes(b.nodes),0):0),0)}
+function nodeHTML(n){
+ const [tn,ti]=NT[n.type]||['Etapa','chat'];let ref='';
+ if(n.type==='audio'){const a=S.audios.find(x=>x.id===n.ref);if(a)ref=`<span class="nd mono">${fmtDur(a.dur)} · usado ${a.uses}×</span>`}
+ if(n.type==='faq'){const f=S.faqs.find(x=>x.id===n.ref);if(f)ref=`<span class="nd">${esc(f.a.slice(0,80))}…</span>`}
+ let h=`<button class="node t-${n.type}" data-a="node" data-id="${n.id}"><span class="nt">${ic(ti)}${tn}</span><span class="nl">${esc(n.label)}</span>${n.detail?`<span class="nd">${esc(n.detail)}</span>`:''}${ref}</button>`;
+ if(n.branches)h+=`<div class="conn"></div><div class="branches">${n.branches.map(b=>`<div class="branch"><span class="blabel">${esc(b.label)}</span><div class="conn"></div>${seqHTML(b.nodes,b.id)}</div>`).join('')}</div>`;
+ return h;
+}
+function seqHTML(nodes,seqId){return `<div class="seq">${nodes.map((n,i)=>(i?'<div class="conn"></div>':'')+nodeHTML(n)).join('')}${nodes.length?'<div class="conn"></div>':''}<button class="addn" data-a="addn" data-seq="${seqId}" aria-label="Adicionar etapa">${ic('plus')}</button></div>`}
+function vFlows(){
+ const f=curFlow();
+ return `<div class="page" style="max-width:none">
+ <p class="muted" style="max-width:72ch">Trilhas organizam respostas padrão, áudios, mensagens rápidas e consultas aos sistemas em etapas com condições. O Vetbot monta e sugere melhorias; nada entra em uso sem a sua confirmação.</p>
+ <div class="flows">
+  <div class="flow-list">${S.flows.map(x=>`<button class="fl ${x.id===f.id?'on':''}" data-a="flow" data-id="${x.id}"><span class="row"><b class="grow">${esc(x.name)}</b>${x.status==='sugerida'?'<span class="pill warn">Sugerida</span>':'<span class="pill ok">Ativa</span>'}</span><span class="row">${chip(x.cat)}<span class="muted" style="font-size:12px">${countNodes(x.nodes)} etapas</span></span>${x.sugs&&x.sugs.length?`<span class="pill ai" style="align-self:flex-start">${ic('spark')}${x.sugs.length} sugestão do Vetbot</span>`:''}</button>`).join('')}
+   <button class="btn" data-a="flow-new">${ic('plus')}Nova trilha</button></div>
+  <div class="card" style="overflow:hidden;min-width:0">
+   <div class="pad" style="display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)">
+    <div class="row"><h2 class="grow">${esc(f.name)}</h2>
+     <label class="row" style="font-size:13px;gap:8px" title="${f.lock?'Trilha de emergência sempre exige humano':''}">Vetbot executa sozinho <input type="checkbox" class="sw" data-a="flow-auto" ${f.auto?'checked':''} ${f.lock?'disabled':''}></label>
+     <button class="btn sm ghost danger" data-a="flow-del">${ic('trash')}Excluir</button></div>
+    ${f.origin?`<p class="muted" style="font-size:13px">${ic('spark')} ${esc(f.origin)}</p>`:''}
+    ${f.status==='sugerida'?`<div class="sug"><span class="ai">${ic('bot')}</span><div class="grow"><b>Esta trilha foi montada pelo Vetbot.</b><p class="muted" style="font-size:13px">Revise as etapas, ajuste o que quiser e ative quando estiver de acordo.</p></div><button class="btn sm pri" data-a="flow-ok">${ic('check')}Ativar trilha</button></div>`:''}
+    ${(f.sugs||[]).map((s,i)=>`<div class="sug"><span class="ai">${ic('spark')}</span><div class="grow"><b>Sugestão do Vetbot</b><p style="font-size:13px">${esc(s.text)}</p></div><div class="row"><button class="btn sm pri" data-a="sug-ok" data-i="${i}">Aplicar</button><button class="btn sm" data-a="sug-no" data-i="${i}">Recusar</button></div></div>`).join('')}
+    ${f.lock?`<p class="muted" style="font-size:12.5px">${ic('shield')} Emergências sempre passam por uma pessoa, em qualquer modo do agente.</p>`:''}
+   </div>
+   <div class="canvas">${seqHTML(f.nodes,'root')}</div>
+  </div></div></div>`;
+}
+function nodeModal(id){
+ const f=curFlow();const r=findNode(f.nodes,id);if(!r)return;const n=r.n;
+ const refSel=n.type==='audio'?`<label class="f">Áudio<select id="nf-ref">${S.audios.map(a=>`<option value="${a.id}" ${a.id===n.ref?'selected':''}>${esc(a.title)}</option>`).join('')}</select></label>`:n.type==='faq'?`<label class="f">Resposta padrão<select id="nf-ref">${S.faqs.map(a=>`<option value="${a.id}" ${a.id===n.ref?'selected':''}>${esc(a.q)}</option>`).join('')}</select></label>`:n.type==='quick'?`<label class="f">Mensagem rápida<select id="nf-ref">${S.quick.map(a=>`<option value="${a.k}" ${a.k===n.ref?'selected':''}>${esc(a.k)}: ${esc(a.t.slice(0,50))}</option>`).join('')}</select></label>`:'';
+ openModal(`<div class="mhead"><h2>${esc(NT[n.type][0])}</h2><button class="iconbtn" data-a="close" aria-label="Fechar">${ic('x')}</button></div>
+ <div class="mbody" data-id="${n.id}" id="nodeform"><label class="f">${n.type==='cond'?'Pergunta da condição':'Título da etapa'}<input type="text" id="nf-l" value="${esc(n.label)}"></label>${refSel}
+ <label class="f">Detalhe (opcional)<textarea id="nf-d" rows="2">${esc(n.detail||'')}</textarea></label>
+ ${n.type==='cond'?`<label class="f">Ramos (um por linha)<textarea id="nf-b" rows="2">${esc(n.branches.map(b=>b.label).join('\n'))}</textarea></label>`:''}</div>
+ <div class="mfoot"><button class="btn danger" data-a="node-del" data-id="${n.id}" style="margin-right:auto">${ic('trash')}Excluir etapa</button><button class="btn" data-a="close">Cancelar</button><button class="btn pri" data-a="node-save" data-id="${n.id}">${ic('check')}Salvar</button></div>`);
+}
+function genFlow(name,catId){
+ const faqs=S.faqs.filter(f=>f.cat===catId).sort((a,b)=>b.n-a.n).slice(0,3);
+ const nodes=[{type:'trigger',label:'Pergunta classificada como '+cat(catId).name}];
+ if(catId==='fin')nodes.push({type:'bank',label:'Buscar títulos e pagamentos do tutor'});else if(catId!=='info'&&catId!=='banho')nodes.push({type:'erp',label:'Buscar dados do pet no prontuário'});
+ if(faqs.length)nodes.push({type:'cond',label:'Qual é a dúvida?',branches:[...faqs.map(f=>{const ns=[{type:'faq',label:f.q,ref:f.id}];if(f.audio)ns.push({type:'audio',label:S.audios.find(a=>a.id===f.audio)?.title||'Áudio',ref:f.audio});return {label:f.q.length>28?f.q.slice(0,26)+'…':f.q,nodes:ns}}),{label:'Outra',nodes:[{type:'human',label:'Transferir para a equipe'}]}]});
+ else nodes.push({type:'human',label:'Transferir para a equipe',detail:'Ainda não há respostas padrão nesta categoria'});
+ return {id:uid('f'),name,cat:catId,status:'sugerida',auto:false,origin:`Montada pelo Vetbot com ${faqs.length} respostas padrão de ${cat(catId).name}`,nodes:nodes.map(withIds),sugs:[]};
+}
+
+/* ============ Áudios e mídias ============ */
+function vMedia(){
+ const media=[];S.convs.forEach(c=>c.msgs.forEach(m=>{if(m.t==='image'||m.t==='audio')media.push({c,m})}));
+ return `<div class="page">
+ <section style="display:flex;flex-direction:column;gap:12px"><div class="row"><h2 class="grow">Áudios padrão</h2><button class="btn pri" data-a="audio-new">${ic('mic')}Novo áudio padrão</button></div>
+ <p class="muted" style="max-width:70ch">Grave uma vez a explicação que a equipe repete todos os dias. O Vetbot sugere o áudio quando a pergunta combina com a regra de envio.</p>
+ <div class="grid-cards">${S.audios.map(a=>`<div class="card acard"><div class="row">${chip(a.cat)}<span class="muted mono" style="margin-left:auto;font-size:12px">${a.uses}× enviado</span></div><b>${esc(a.title)}</b>
+  <div class="player"><button class="play" data-a="play" data-pid="lib${a.id}" data-dur="${a.dur}" ${a.src?`data-src="${a.src}"`:''} aria-label="Ouvir">${ic('play')}</button>${wave('lib'+a.id,28)}<span class="dur mono">${fmtDur(a.dur)}</span></div>
+  <p style="font-size:12.5px"><span class="muted">Quando enviar:</span> ${esc(a.when)}</p><p class="muted" style="font-size:12px">Gravado por ${esc(a.by)}</p>
+  <div class="row"><button class="btn sm ghost" data-a="audio-edit" data-id="${a.id}">${ic('edit')}Editar</button></div></div>`).join('')}</div></section>
+ <section class="card"><div class="pad row" style="border-bottom:1px solid var(--line)"><h2 class="grow">Mídias recebidas e enviadas</h2><span class="muted" style="font-size:12.5px">Armazenadas com a conversa e vinculadas ao prontuário</span></div>
+ <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Tutor · pet</th><th>Quando</th><th>Origem</th><th>Detalhe</th></tr></thead><tbody>${media.map(({c,m})=>`<tr><td>${m.t==='image'?'<span class="pill neu">'+ic('image')+'Imagem</span>':'<span class="pill neu">'+ic('mic')+'Áudio</span>'}</td><td><b>${esc(c.tutor)}</b><br><span class="muted">${esc(c.pet)}</span></td><td class="mono">${esc(m.d)} ${esc(m.at)}</td><td>${m.f==='c'?'Tutor':m.auto?'Vetbot':'Equipe'}</td><td class="muted">${m.t==='audio'?(m.tr?'Transcrito: “'+esc(m.tr.slice(0,60))+'…”':esc(m.title||'Áudio')):esc(m.cap||'Imagem')}</td></tr>`).join('')}</tbody></table></div></section></div>`;
+}
+function audioModal(a){
+ const isNew=!a;a=a||{id:'',title:'',cat:'info',dur:30,when:'',by:'Camila (recepção)'};
+ openModal(`<div class="mhead"><h2>${isNew?'Novo áudio padrão':'Editar áudio'}</h2><button class="iconbtn" data-a="close" aria-label="Fechar">${ic('x')}</button></div>
+ <div class="mbody" id="audform" data-id="${a.id}">
+  <div class="cbox learn" style="font-size:13px"><b>${ic('mic')} Gravação</b><span>No aplicativo final você grava direto pelo microfone, com corte de silêncio. Nesta demonstração, envie um arquivo de áudio.</span><input type="file" id="af-file" accept="audio/*"></div>
+  <label class="f">Nome do áudio<input type="text" id="af-t" value="${esc(a.title)}" placeholder="Ex.: Cuidados após vacina"></label>
+  <label class="f">Categoria<select id="af-c">${CATS.map(c=>`<option value="${c.id}" ${c.id===a.cat?'selected':''}>${c.name}</option>`).join('')}</select></label>
+  <label class="f">Quando o Vetbot deve sugerir este áudio<textarea id="af-w" rows="2" placeholder="Ex.: tutor pergunta sobre reação depois da vacina">${esc(a.when)}</textarea></label>
+  <label class="f">Vincular a uma resposta padrão (opcional)<select id="af-q"><option value="">Nenhuma</option>${S.faqs.map(f=>`<option value="${f.id}" ${a.id&&f.audio===a.id?'selected':''}>${esc(f.q)}</option>`).join('')}</select></label>
+ </div><div class="mfoot"><button class="btn" data-a="close">Cancelar</button><button class="btn pri" data-a="audio-save">${ic('check')}Salvar áudio</button></div>`);
+}
+
+/* ============ Mensagens rápidas ============ */
+function vQuick(){
+ return `<div class="page"><p class="muted" style="max-width:70ch">Digite <span class="mono">/</span> no campo de mensagem para usar um atalho. As variáveis entre chaves são preenchidas com os dados da conversa.</p>
+ <section class="card"><form class="pad" id="quickform" style="display:grid;grid-template-columns:140px minmax(0,1fr) 190px auto;gap:10px;align-items:end;border-bottom:1px solid var(--line)">
+  <label class="f">Atalho<input type="text" id="qk" placeholder="/vacina" required></label><label class="f">Mensagem<input type="text" id="qt" placeholder="Texto que será inserido" required></label>
+  <label class="f">Categoria<select id="qc">${CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></label><button class="btn pri" type="submit">${ic('plus')}Adicionar</button></form>
+ <div class="table-wrap"><table><thead><tr><th>Atalho</th><th>Mensagem</th><th>Categoria</th><th>Uso</th><th></th></tr></thead><tbody>${S.quick.map((q,i)=>`<tr><td class="mono" style="color:var(--primary)">${esc(q.k)}</td><td>${esc(q.t)}</td><td>${chip(q.cat)}</td><td class="mono">${q.n}×</td><td><button class="btn sm ghost" data-a="quick-del" data-i="${i}" aria-label="Excluir">${ic('trash')}</button></td></tr>`).join('')}</tbody></table></div></section></div>`;
+}
+
+/* ============ Integrações ============ */
+const INTS=[
+ {id:'wa',name:'WhatsApp Business',sub:'API Cloud da Meta',icn:'phone',info:[['Número','+55 11 4002-8922'],['Modelos aprovados','6 (lembrete de vacina, confirmação de consulta, cobrança, resultado de exame…)'],['Recebe','Texto, áudio, imagem, documento e localização']]},
+ {id:'mail',name:'E-mail da clínica',sub:'Google Workspace ou Microsoft 365',icn:'mail',info:[['Caixa','atendimento@patasecia.com.br'],['Usado para','Orçamentos, laudos e e-mails trocados com o tutor']]},
+ {id:'bank',name:'Banco e cobranças',sub:'API de boletos e Pix',icn:'bank',info:[['Usado para','Títulos em aberto, 2ª via, confirmação de pagamento'],['Aviso de pagamento','Webhook ativo']]},
+ {id:'erp',name:'ERP veterinário',sub:'Prontuário, agenda, vacinas e exames',icn:'db',info:[['Sincronização','A cada 5 min e sob demanda'],['Busca do tutor','Pelo telefone do WhatsApp ou CPF']]},
+ {id:'lab',name:'Laboratório parceiro',sub:'Laudos em PDF',icn:'book',info:[['Usado para','Avisar o tutor quando o laudo é liberado']]},
+];
+function vInts(){
+ return `<div class="page"><p class="muted" style="max-width:72ch">Cada sistema conectado vira uma fonte de contexto para o agente. Você decide, por sistema, se o Vetbot só lê, se pode agir com sua confirmação ou se pode agir sozinho.</p>
+ <div class="ints">${INTS.map(it=>{const st=S.ints[it.id];return `<div class="card int"><div class="row" style="flex-wrap:nowrap"><span class="int-ico">${ic(it.icn)}</span><div class="grow"><b>${esc(it.name)}</b><div class="muted" style="font-size:12.5px">${esc(it.sub)}</div></div>${st.on?'<span class="pill ok">Conectado</span>':`<button class="btn sm pri" data-a="int-on" data-id="${it.id}">Conectar</button>`}</div>
+  <dl class="kv">${it.info.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+  <div>${[['read','Vetbot pode ler os dados'],['act','Vetbot pode agir com minha confirmação'],['solo','Vetbot pode agir sozinho']].map(([p,l])=>`<label class="perm"><span>${l}</span><input type="checkbox" class="sw" data-a="perm" data-id="${it.id}" data-p="${p}" ${st.perm[p]?'checked':''} ${st.on?'':'disabled'}></label>`).join('')}</div></div>`}).join('')}</div>
+ <section class="card pad" style="display:flex;flex-direction:column;gap:8px"><h2>${ic('shield')} Privacidade e LGPD</h2><ul class="note" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px"><li>Prontuários e dados financeiros são consultados na hora e não ficam guardados no contexto do agente.</li><li>CPF e dados bancários aparecem mascarados para a equipe sem permissão financeira.</li><li>Cada consulta do agente aos sistemas fica registrada (quem, quando, qual conversa).</li><li>Retenção configurável de conversas e mídias, com exclusão a pedido do tutor.</li></ul></section></div>`;
+}
+
+/* ============ Modal ============ */
+function openModal(h){const m=$('#modal');m.innerHTML=`<div class="mbox" role="dialog" aria-modal="true">${h}</div>`;m.hidden=false;setTimeout(()=>m.querySelector('input,textarea,select')?.focus(),30)}
+function closeModal(){const m=$('#modal');m.hidden=true;m.innerHTML=''}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').hidden)closeModal()});
+
+/* ============ Player (simulado; arquivos enviados tocam de verdade) ============ */
+let PL=null;
+function stopPlay(){if(!PL)return;cancelAnimationFrame(PL.raf);try{PL.audio&&PL.audio.pause()}catch(e){}document.querySelectorAll(`[data-pid="${PL.id}"]`).forEach(b=>{b.innerHTML=ic('play');const w=b.parentElement.querySelector('.wave');w&&w.querySelectorAll('i').forEach(i=>i.classList.remove('on'))});PL=null}
+function togglePlay(el){const id=el.dataset.pid;if(PL&&PL.id===id){stopPlay();return}stopPlay();PL={id,dur:+el.dataset.dur||20,start:performance.now()};if(el.dataset.src){PL.audio=new Audio(el.dataset.src);PL.audio.play().catch(()=>{});PL.audio.onloadedmetadata=()=>{if(PL&&isFinite(PL.audio.duration))PL.dur=PL.audio.duration}}tick()}
+function tick(){if(!PL)return;const p=Math.min(1,(performance.now()-PL.start)/1000/PL.dur);document.querySelectorAll(`[data-pid="${PL.id}"]`).forEach(b=>{if(!b.dataset.on){b.innerHTML=ic('pause')}const w=b.parentElement.querySelector('.wave');if(w){const bars=w.querySelectorAll('i');const k=Math.floor(p*bars.length);bars.forEach((x,i)=>x.classList.toggle('on',i<k))}});if(p>=1){stopPlay();return}PL.raf=requestAnimationFrame(tick)}
+
+/* ============ Ações ============ */
+const A={
+ mode:el=>{S.mode=el.dataset.v;S.learn=null;toast({copiloto:'Copiloto: o Vetbot sugere e você confirma.',auto:'Automático: o Vetbot responde sozinho nas respostas liberadas.',off:'Agente desligado: você responde manualmente.'}[S.mode]);render()},
+ reset:()=>{try{localStorage.removeItem(KEY)}catch(e){}S=seed();stopPlay();render();toast('Dados de exemplo restaurados')},
+ sel:el=>{S.sel=el.dataset.id;const c=curConv();c.unread=0;S.pane='chat';render()},
+ pane:el=>{S.pane=el.dataset.v;render()},
+ cop:()=>{if(matchMedia('(max-width:819px)').matches)S.pane='cop';else S.showCop=!S.showCop;render()},
+ 'cop-close':()=>{if(matchMedia('(max-width:819px)').matches)S.pane='chat';S.showCop=false;render()},
+ alt:el=>{S.alt[S.sel]=el.dataset.id;render()},
+ 'alt-force':el=>{const f=S.faqs.find(x=>x.id===el.dataset.id);const ta=$('#composer');ta.value=fill(f.a,curConv().vars);S.draft[S.sel]=ta.value;ta.focus()},
+ 'use-sugg':()=>{const ta=$('#composer');ta.value=$('#sugg').value;S.draft[S.sel]=ta.value;ta.focus()},
+ 'send-sugg':el=>{sendText($('#sugg').value,{faq:el.dataset.f})},
+ 'send-audio':el=>{const a=S.audios.find(x=>x.id===el.dataset.id);const c=curConv();pushMsg(c,{f:'k',t:'audio',dur:a.dur,title:a.title,by:'Camila',sugg:true,src:a.src});a.uses++;toast('Áudio enviado: '+a.title);render()},
+ send:()=>{const ta=$('#composer');sendText(ta.value)},
+ '2via':()=>{S.confirm2via=S.sel;render()},
+ '2via-no':()=>{S.confirm2via=null;render()},
+ '2via-ok':()=>{const c=curConv();c.vars.link='pag.patasecia.com.br/2v/4471-b';c.vars.valor='R$ 1.293,44';c.ctx.bank.push(['2ª via','R$ 1.293,44 · vence 13/11 · gerada agora']);S.confirm2via=null;Object.keys(S.suggEdit).forEach(k=>k.startsWith(c.id+':')&&delete S.suggEdit[k]);toast('2ª via gerada no banco e inserida na resposta');render()},
+ notify:()=>toast('Plantão avisado: Dr. Marcos Lima e Dra. Paula Reis'),
+ toast:el=>toast(el.dataset.m),
+ simulate:()=>incoming(),
+ 'learn-up':()=>{const L=S.learn;const f=S.faqs.find(x=>x.id===L.faqId);if(f){f.a=L.text;toast('Resposta padrão atualizada')}S.learn=null;render()},
+ 'learn-skip':()=>{S.learn=null;render()},
+ 'learn-save':()=>{const L=S.learn;const ct=$('#learncat').value;S.faqs.push({id:uid('q'),cat:ct,q:L.q.charAt(0).toUpperCase()+L.q.slice(1),vars:[],a:L.text,n:1,auto:false});S.learn=null;toast('Salva na base em '+cat(ct).name);render()},
+ 'attach-img':()=>$('#f-img').click(),
+ 'attach-aud':()=>$('#f-aud').click(),
+ 'quick-pick':el=>{const q=S.quick.find(x=>x.k===el.dataset.k);const ta=$('#composer');ta.value=fill(q.t,curConv().vars);q.n++;S.draft[S.sel]=ta.value;$('#quickpop').hidden=true;ta.focus()},
+ play:el=>togglePlay(el),
+ manual:el=>{const f=S.faqs.find(x=>x.id===el.dataset.id);const ta=$('#composer');ta.value=fill(f.a,curConv().vars);S.draft[S.sel]=ta.value;ta.focus()},
+ // Base
+ sample:()=>runAnalysis(SAMPLE,'exemplo_whatsapp_patas_e_cia.txt'),
+ 'an-close':()=>{S.an=null;render()},
+ 'cl-ok':el=>{approveCluster(+el.dataset.i);toast('Resposta padrão adicionada');render()},
+ 'cl-no':el=>{S.an.result.clusters[+el.dataset.i].status='no';render()},
+ 'cl-all':()=>{S.an.result.clusters.forEach((c,i)=>approveCluster(i));toast('Todas as sugestões foram adicionadas à base');render()},
+ kbcat:el=>{S.kbCat=el.dataset.c;render()},
+ 'faq-new':()=>faqModal(null),
+ 'faq-edit':el=>faqModal(S.faqs.find(f=>f.id===el.dataset.id)),
+ 'faq-save':()=>{const id=$('#faqform').dataset.id;const q=$('#ff-q').value.trim(),a=$('#ff-a').value.trim();if(!q||!a){toast('Preencha a pergunta e a resposta');return}const d={q,a,cat:$('#ff-c').value,vars:$('#ff-v').value.split('\n').map(s=>s.trim()).filter(Boolean),audio:$('#ff-au').value||undefined};if(id)Object.assign(S.faqs.find(f=>f.id===id),d);else S.faqs.push({id:uid('q'),n:0,auto:false,...d});closeModal();toast('Resposta padrão salva');render()},
+ 'faq-del':el=>{S.faqs=S.faqs.filter(f=>f.id!==el.dataset.id);closeModal();toast('Resposta excluída');render()},
+ // Trilhas
+ flow:el=>{S.flowSel=el.dataset.id;render()},
+ node:el=>nodeModal(el.dataset.id),
+ 'node-save':el=>{const f=curFlow();const r=findNode(f.nodes,el.dataset.id);const n=r.n;n.label=$('#nf-l').value.trim()||n.label;n.detail=$('#nf-d').value.trim();const rs=$('#nf-ref');if(rs)n.ref=rs.value;const bs=$('#nf-b');if(bs&&n.branches){const labels=bs.value.split('\n').map(s=>s.trim()).filter(Boolean);n.branches=labels.map((l,i)=>n.branches[i]?Object.assign(n.branches[i],{label:l}):{id:uid('b'),label:l,nodes:[]})}closeModal();render()},
+ 'node-del':el=>{const f=curFlow();const r=findNode(f.nodes,el.dataset.id);r.arr.splice(r.arr.indexOf(r.n),1);closeModal();render()},
+ addn:el=>{const seq=el.dataset.seq;openModal(`<div class="mhead"><h2>Adicionar etapa</h2><button class="iconbtn" data-a="close" aria-label="Fechar">${ic('x')}</button></div><div class="mbody"><div class="types">${Object.entries(NT).map(([k,[n,i]])=>`<button data-a="addtype" data-t="${k}" data-seq="${seq}">${ic(i)}${n}</button>`).join('')}</div></div>`)},
+ addtype:el=>{const f=curFlow();const t=el.dataset.t;const seq=el.dataset.seq==='root'?f.nodes:findSeq(f.nodes,el.dataset.seq);const n={id:uid(),type:t,label:NT[t][0]};if(t==='cond'){n.label='Nova condição?';n.branches=[{id:uid('b'),label:'Sim',nodes:[]},{id:uid('b'),label:'Não',nodes:[]}]}if(t==='audio')n.ref=S.audios[0].id;if(t==='faq')n.ref=S.faqs[0].id;if(t==='quick')n.ref=S.quick[0].k;seq.push(n);closeModal();render();nodeModal(n.id)},
+ 'sug-ok':el=>{const f=curFlow();const s=f.sugs[+el.dataset.i];const seq=s.seq==='root'?f.nodes:findSeq(f.nodes,s.seq);if(seq)seq.push(withIds(JSON.parse(JSON.stringify(s.node))));f.sugs.splice(+el.dataset.i,1);toast('Sugestão aplicada à trilha');render()},
+ 'sug-no':el=>{curFlow().sugs.splice(+el.dataset.i,1);toast('Sugestão recusada. O Vetbot não vai repeti-la.');render()},
+ 'flow-ok':()=>{const f=curFlow();f.status='ativa';toast('Trilha ativada');render()},
+ 'flow-del':()=>{if(S.flows.length<2)return;S.flows=S.flows.filter(f=>f.id!==S.flowSel);S.flowSel=S.flows[0].id;render()},
+ 'flow-new':()=>openModal(`<div class="mhead"><h2>Nova trilha</h2><button class="iconbtn" data-a="close" aria-label="Fechar">${ic('x')}</button></div><div class="mbody"><label class="f">Nome<input type="text" id="nfl-n" placeholder="Ex.: Banho e tosa"></label><label class="f">Categoria<select id="nfl-c">${CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></label><p class="muted" style="font-size:13px">O Vetbot pode montar um rascunho usando as respostas padrão e os áudios desta categoria. Você revisa antes de ativar.</p></div><div class="mfoot"><button class="btn" data-a="flow-create" data-m="blank">Começar do zero</button><button class="btn pri" data-a="flow-create" data-m="ai">${ic('spark')}Montar com o Vetbot</button></div>`),
+ 'flow-create':el=>{const c=$('#nfl-c').value;const n=$('#nfl-n').value.trim()||cat(c).name;const f=el.dataset.m==='ai'?genFlow(n,c):{id:uid('f'),name:n,cat:c,status:'sugerida',auto:false,nodes:[withIds({type:'trigger',label:'Pergunta classificada como '+cat(c).name})],sugs:[]};if(el.dataset.m!=='ai')f.status='ativa';S.flows.push(f);S.flowSel=f.id;closeModal();render()},
+ // Áudios
+ 'audio-new':()=>audioModal(null),
+ 'audio-edit':el=>audioModal(S.audios.find(a=>a.id===el.dataset.id)),
+ 'audio-save':()=>{const form=$('#audform');const id=form.dataset.id;const t=$('#af-t').value.trim();if(!t){toast('Dê um nome ao áudio');return}const d={title:t,cat:$('#af-c').value,when:$('#af-w').value.trim()||'Definido pelo Vetbot conforme a categoria'};const file=$('#af-file').files[0];const finish=(src,dur)=>{let a;if(id){a=S.audios.find(x=>x.id===id);Object.assign(a,d)}else{a={id:uid('a'),uses:0,by:'Camila (recepção)',dur:30,...d};S.audios.push(a)}if(src){a.src=src;a.dur=dur||a.dur}const q=$('#af-q').value;if(q){S.faqs.forEach(f=>{if(f.audio===a.id)delete f.audio});S.faqs.find(f=>f.id===q).audio=a.id}closeModal();toast('Áudio salvo');render()};
+   if(file){if(file.size>4e6){toast('Arquivo grande demais para a demonstração (máx. 4 MB)');return}const r=new FileReader();r.onload=()=>{const au=new Audio(r.result);au.onloadedmetadata=()=>finish(r.result,isFinite(au.duration)?Math.round(au.duration):30);au.onerror=()=>finish(r.result,30)};r.readAsDataURL(file)}else finish()},
+ // Rápidas
+ 'quick-del':el=>{S.quick.splice(+el.dataset.i,1);render()},
+ // Integrações
+ 'int-on':el=>{const s=S.ints[el.dataset.id];s.on=true;s.perm.read=true;toast('Conectado. O Vetbot já pode consultar esses dados.');render()},
+ close:()=>closeModal(),
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.matches('input[type=checkbox]'))return;const f=A[el.dataset.a];if(f){e.preventDefault();f(el,e)}});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.matches('[data-a="faq-auto"]')){S.faqs.find(f=>f.id===t.dataset.id).auto=t.checked;toast(t.checked?'Liberada para envio automático':'Só com confirmação');render()}
+ else if(t.matches('[data-a="flow-auto"]')){curFlow().auto=t.checked;render()}
+ else if(t.matches('[data-a="perm"]')){S.ints[t.dataset.id].perm[t.dataset.p]=t.checked;if(t.dataset.p==='solo'&&t.checked)S.ints[t.dataset.id].perm.act=true;render()}
+ else if(t.id==='upfile'){readFiles(t.files)}
+ else if(t.id==='ansender'){S.an.clinic=t.value;const x=S.an;runAnalysis(x.txt,x.file)}
+ else if(t.id==='f-img'||t.id==='f-aud'){const file=t.files[0];if(!file)return;if(file.size>4e6){toast('Arquivo grande demais para a demonstração (máx. 4 MB)');t.value='';return}const r=new FileReader();const c=curConv();r.onload=()=>{if(t.id==='f-img')pushMsg(c,{f:'k',t:'image',src:r.result,cap:file.name,by:'Camila'});else{pushMsg(c,{f:'k',t:'audio',src:r.result,dur:20,by:'Camila',title:file.name})}t.value='';render()};r.readAsDataURL(file)}
+});
+document.addEventListener('input',e=>{const t=e.target;
+ if(t.id==='composer'){S.draft[S.sel]=t.value;const pop=$('#quickpop');if(t.value.startsWith('/')){const q=t.value.slice(1).toLowerCase();const L=S.quick.filter(x=>x.k.slice(1).startsWith(q)||n1(x.t).includes(n1(q)));pop.innerHTML=L.length?L.map((x,i)=>`<button data-a="quick-pick" data-k="${esc(x.k)}" class="${i===0?'on':''}"><span class="k">${esc(x.k)}</span><span class="t">${esc(fill(x.t,curConv().vars))}</span></button>`).join(''):'<div class="empty">Nenhum atalho encontrado</div>';pop.hidden=false}else pop.hidden=true}
+ else if(t.id==='sugg'){S.suggEdit[t.dataset.key]=t.value}
+ else if(t.id==='kbq'){S.kbQ=t.value;const pos=t.selectionStart;render();const n=$('#kbq');n.focus();n.setSelectionRange(pos,pos)}
+ else if(t.id==='manualq'){const q=t.value;const res=q.trim()?S.faqs.map(f=>({f,s:faqScore(q,f)+(n1(f.q+f.a).includes(n1(q))?.3:0)})).sort((a,b)=>b.s-a.s).slice(0,4):[];$('#manualres').innerHTML=res.map(r=>`<button class="alt" data-a="manual" data-id="${r.f.id}" style="margin-top:6px"><span class="grow">${esc(r.f.q)}</span>${chip(r.f.cat)}</button>`).join('')}
+});
+document.addEventListener('keydown',e=>{if(e.target.id==='composer'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();const pop=$('#quickpop');if(!pop.hidden){const b=pop.querySelector('button');if(b){A['quick-pick'](b);return}}sendText(e.target.value)}});
+document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='quickform'){let k=$('#qk').value.trim();if(!k.startsWith('/'))k='/'+k;k=k.replace(/\s+/g,'');S.quick.push({k,t:$('#qt').value.trim(),cat:$('#qc').value,n:0});toast('Atalho '+k+' criado');render()}});
+function readFiles(files){const arr=[...files];if(!arr.length)return;Promise.all(arr.map(f=>f.text())).then(ts=>runAnalysis(ts.join('\n'),arr.map(f=>f.name).join(', ')))}
+document.addEventListener('dragover',e=>{const d=e.target.closest&&e.target.closest('#drop');if(d){e.preventDefault();d.classList.add('over')}});
+document.addEventListener('dragleave',e=>{const d=e.target.closest&&e.target.closest('#drop');if(d)d.classList.remove('over')});
+document.addEventListener('drop',e=>{const d=e.target.closest&&e.target.closest('#drop');if(d){e.preventDefault();d.classList.remove('over');readFiles(e.dataTransfer.files)}});
+
+render();
+</script>
+
+</body>
+</html>
